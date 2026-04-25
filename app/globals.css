@@ -1,0 +1,70 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 340 25% 98%;
+    --foreground: 240 3% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 240 3% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 3% 11%;
+
+    --primary: 0 0% 0%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 210 15% 45%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 300 5% 94%;
+    --muted-foreground: 233 6% 29%;
+
+    --accent: 300 5% 92%;
+    --accent-foreground: 240 3% 11%;
+
+    --destructive: 0 75% 42%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 240 6% 79%;
+    --input: 240 6% 79%;
+    --ring: 0 0% 0%;
+
+    --primary-container: 222 40% 13%;
+    --on-primary-container: 223 12% 55%;
+
+    --radius: 0.5rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    @apply bg-background;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "cv11", "ss01";
+  }
+}
+
+@layer utilities {
+  .precision-shadow {
+    box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 0.04);
+    transition: box-shadow 0.15s ease;
+  }
+  .precision-shadow:hover {
+    box-shadow: 6px 6px 0px 0px rgba(0, 0, 0, 0.08);
+  }
+  .blueprint-grid {
+    background-image: radial-gradient(circle at 2px 2px, rgba(255, 255, 255, 0.06) 1px, transparent 0);
+    background-size: 24px 24px;
+  }
+  .tracking-widest-caps {
+    letter-spacing: 0.08em;
+  }
+}
