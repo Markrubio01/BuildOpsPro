@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "setup-db": "node --env-file-if-exists=/vercel/share/.env.project scripts/setup-db.js"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.1.0",
