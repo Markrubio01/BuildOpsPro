@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Search,
   Filter,
@@ -22,6 +22,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
+import { getSupabase } from "@/lib/supabase";
 import {
   Select,
   SelectContent,
@@ -29,158 +30,90 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-// Sample crew data matching the design
-const clockedInCrew = [
-  {
-    id: "1",
-    name: "David Chen",
-    role: "Lead Structural Engineer",
-    time: "07:15 AM",
-    location: "Gate 4 Entry",
-    avatar:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuAVpvL6ptLR5DMHKyrS2pGJz7gzK_07Gquv8WvLZcromnG1rq3pwLM323DCMWwhHcv-VV9T-CsfJ1oYa2xDBdYHPpA7srhlKlvT1TOOm1gq2zu5NHS6yFReg25pDKDu6TT6sa2CCpEX4IWqFSghshBkJvygiDyGBjJi6wNYaTLzjA-OuwLdgagnzkTMOLzr2sDQELLEaJZoM1uP9sFf1CCbytiLEyBRChHJDkj1lpOXdsMk3TTPE_ezJ_swA2G7IiKf6O7R4vnHNkkE",
-  },
-  {
-    id: "2",
-    name: "Sarah Miller",
-    role: "Safety Compliance",
-    time: "07:30 AM",
-    location: "Main Office",
-    avatar:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuAx4wa7b-5D0c3w48q0oYJwOxT1eX4qWebusJLtMHo-jdKhiWJexQspdMwOEpLEBhn9gwb1Tu7pa7De7SHuzkjxQfiOxKCHkZwow6SaL_slGQvLks3TIOlWxJT6N6Dyy6PXqIqfXzY9fAX3gvKAz2h0fInJqMgSS3wMmQr47T1Nl0B-suhJUG05UOsucgjWjetdWW2DLi9CuW3vQoU49ZsHHC4S7v1VT7lZ6TGjtGLliV6FEukKhEC-aoGt-oRQ8MngN3kHZKazsTaM",
-  },
-  {
-    id: "3",
-    name: "Marcus Thorne",
-    role: "Foreman",
-    time: "06:45 AM",
-    location: "Zone B Entry",
-    avatar:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuDLUz6nSnFGc7-HJQUSYLOyfC4vX0mrJmHDN4gebC2hLcKCNk_Lm5SrjaivSsta7j6ubgP_mfe1vL0y-pd3LPNyODV-hbe8AP-XEwRVAJXj67V616SF-eCLJT7A_ay-URJYLlzXYqAll2VDQA5__BHYgyaC5BistmahkYNxOaTAnBjwBUqnMTJhsbdgLNIhB8hLywviU4ov-wqKwlANMfgdZn0-GuQYjbJuUvGh-Tr8fL0tVJaUf3LlC1KcYy3R9FY2K7gf9TYAmQQU",
-  },
-];
 
-const clockedOutCrew = [
-  {
-    id: "4",
-    name: "Elena Rodriguez",
-    role: "Site Architect",
-    time: "04:30 PM",
-    status: "Shift Ended",
-    avatar:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuDb_sBJfJD7aidNJ2e4z3SBIvGGze-BmseJ9SyUjNFGJsxSnq5t_wSGtE_gjegJsp1Zja7FSTzPnn3vCupd0xWIuZnGWF3igAxNPNmLESpHQgSp1uYJeEJNBu3zqNBy140aeUDcT3yUzEKANoBef6up4P1XNDzm7VLaGXMY-2SqGflmZ3ou0vPS8EIjDQIaR253qYHLOsWaZDPLWq8A2Jy7dSOTKiVuI_KgLSDDFRUVYZb48eobWzAzqCpa3xy_F-KcjeUYhOOm9TMJ",
-  },
-  {
-    id: "5",
-    name: "James Wilson",
-    role: "Crane Operator",
-    time: "02:15 PM",
-    status: "Medical Leave",
-    avatar:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuB3of3tdCscnS6XZ7cFD7MeAzBmugy7SOkFwQ38bMpEmIkolgH-qjbfmm4SuzDnJsUnxJmSh7M-p5MaHyWjUVW0EAL-ymCCmCwwbCiz51oqflwNHKMcHiQh2upysGvv1vKmUpnaCojQ5l0vDhT1s5GRZsBNsRrQsz2Itb8vI7WGG8DuCIvJVPkspHEIlNNiyF1zMJywoGMLJx4YuRvxjvXCDd5tSmqW6mg_MHVZYyi2jZCukXmYL5wXdua-Lz2rdX5yNej2WoB_eLN",
-  },
-];
-
-const absentCrew = [
-  {
-    id: "6",
-    name: "Robert Vance",
-    role: "Lead Electrician",
-    status: "No Show",
-    scheduled: "08:00 AM",
-    avatar:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuCmQ4UxxEgbnGWNpA2P6Wr7QMrdQcmuGCGJS_tUFCiPD2rbzaTGdO4e30pb43NJPVgLZXkgDUTHqyPLULwvxe24JZeEEKt-vSlAkwtXMT_gDfRejgtDBYCsWfBEN8JbZGkOxAMSvpBtzcqxyxIRgx2EWhigGQB-9NKSP5wdL0gH5O2vUa9nwBc257EBYFs2vvuVYS_qtBdo8ZnPh6BX2zzY8CmW7Miqi0FARXGrkyPTe6WgI2HtWfi2UGTdtKgSg-RH3bUBXaehJ4vc",
-  },
-  {
-    id: "7",
-    name: "TBD Shift Fill",
-    role: "General Labor",
-    status: "Unassigned",
-    scheduled: "Night Shift",
-    avatar: null,
-  },
-];
-
-// Personnel available to clock in/out
-const availablePersonnel = [
-  {
-    id: "p1",
-    name: "Elena Vance",
-    role: "HVAC Specialist",
-    time: "04:30 PM",
-    shiftStatus: "FULL SHIFT",
-    avatar:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuDb_sBJfJD7aidNJ2e4z3SBIvGGze-BmseJ9SyUjNFGJsxSnq5t_wSGtE_gjegJsp1Zja7FSTzPnn3vCupd0xWIuZnGWF3igAxNPNmLESpHQgSp1uYJeEJNBu3zqNBy140aeUDcT3yUzEKANoBef6up4P1XNDzm7VLaGXMY-2SqGflmZ3ou0vPS8EIjDQIaR253qYHLOsWaZDPLWq8A2Jy7dSOTKiVuI_KgLSDDFRUVYZb48eobWzAzqCpa3xy_F-KcjeUYhOOm9TMJ",
-  },
-  {
-    id: "p2",
-    name: "David Aris",
-    role: "Steel Fixer",
-    time: "04:30 PM",
-    shiftStatus: "NEAR END",
-    avatar:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuAVpvL6ptLR5DMHKyrS2pGJz7gzK_07Gquv8WvLZcromnG1rq3pwLM323DCMWwhHcv-VV9T-CsfJ1oYa2xDBdYHPpA7srhlKlvT1TOOm1gq2zu5NHS6yFReg25pDKDu6TT6sa2CCpEX4IWqFSghshBkJvygiDyGBjJi6wNYaTLzjA-OuwLdgagnzkTMOLzr2sDQELLEaJZoM1uP9sFf1CCbytiLEyBRChHJDkj1lpOXdsMk3TTPE_ezJ_swA2G7IiKf6O7R4vnHNkkE",
-  },
-  {
-    id: "p3",
-    name: "Jordan Lee",
-    role: "Carpenter",
-    time: "04:30 PM",
-    shiftStatus: "FULL SHIFT",
-    avatar:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuDLUz6nSnFGc7-HJQUSYLOyfC4vX0mrJmHDN4gebC2hLcKCNk_Lm5SrjaivSsta7j6ubgP_mfe1vL0y-pd3LPNyODV-hbe8AP-XEwRVAJXj67V616SF-eCLJT7A_ay-URJYLlzXYqAll2VDQA5__BHYgyaC5BistmahkYNxOaTAnBjwBUqnMTJhsbdgLNIhB8hLywviU4ov-wqKwlANMfgdZn0-GuQYjbJuUvGh-Tr8fL0tVJaUf3LlC1KcYy3R9FY2K7gf9TYAmQQU",
-  },
-  {
-    id: "p4",
-    name: "Samuel Park",
-    role: "Safety Officer",
-    time: "04:30 PM",
-    shiftStatus: "OVERTIME",
-    avatar:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuAx4wa7b-5D0c3w48q0oYJwOxT1eX4qWebusJLtMHo-jdKhiWJexQspdMwOEpLEBhn9gwb1Tu7pa7De7SHuzkjxQfiOxKCHkZwow6SaL_slGQvLks3TIOlWxJT6N6Dyy6PXqIqfXzY9fAX3gvKAz2h0fInJqMgSS3wMmQr47T1Nl0B-suhJUG05UOsucgjWjetdWW2DLi9CuW3vQoU49ZsHHC4S7v1VT7lZ6TGjtGLliV6FEukKhEC-aoGt-oRQ8MngN3kHZKazsTaM",
-  },
-];
-
-const unclockdPersonnel = [
-  {
-    id: "u1",
-    name: "Riley Smith",
-    role: "Carpenter",
-    timeIn: "07:30 AM",
-    avatar:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuDLUz6nSnFGc7-HJQUSYLOyfC4vX0mrJmHDN4gebC2hLcKCNk_Lm5SrjaivSsta7j6ubgP_mfe1vL0y-pd3LPNyODV-hbe8AP-XEwRVAJXj67V616SF-eCLJT7A_ay-URJYLlzXYqAll2VDQA5__BHYgyaC5BistmahkYNxOaTAnBjwBUqnMTJhsbdgLNIhB8hLywviU4ov-wqKwlANMfgdZn0-GuQYjbJuUvGh-Tr8fL0tVJaUf3LlC1KcYy3R9FY2K7gf9TYAmQQU",
-  },
-  {
-    id: "u2",
-    name: "Elena Rodriguez",
-    role: "Structural Welder",
-    timeIn: "07:30 AM",
-    avatar:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuDb_sBJfJD7aidNJ2e4z3SBIvGGze-BmseJ9SyUjNFGJsxSnq5t_wSGtE_gjegJsp1Zja7FSTzPnn3vCupd0xWIuZnGWF3igAxNPNmLESpHQgSp1uYJeEJNBu3zqNBy140aeUDcT3yUzEKANoBef6up4P1XNDzm7VLaGXMY-2SqGflmZ3ou0vPS8EIjDQIaR253qYHLOsWaZDPLWq8A2Jy7dSOTKiVuI_KgLSDDFRUVYZb48eobWzAzqCpa3xy_F-KcjeUYhOOm9TMJ",
-  },
-  {
-    id: "u3",
-    name: "James Miller",
-    role: "General Laborer",
-    timeIn: "07:30 AM",
-    avatar:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuAVpvL6ptLR5DMHKyrS2pGJz7gzK_07Gquv8WvLZcromnG1rq3pwLM323DCMWwhHcv-VV9T-CsfJ1oYa2xDBdYHPpA7srhlKlvT1TOOm1gq2zu5NHS6yFReg25pDKDu6TT6sa2CCpEX4IWqFSghshBkJvygiDyGBjJi6wNYaTLzjA-OuwLdgagnzkTMOLzr2sDQELLEaJZoM1uP9sFf1CCbytiLEyBRChHJDkj1lpOXdsMk3TTPE_ezJ_swA2G7IiKf6O7R4vnHNkkE",
-  },
-];
+interface CrewMember {
+  id: string;
+  name: string;
+  role: string;
+  time?: string;
+  location?: string;
+  status?: string;
+  scheduled?: string;
+  avatar?: string | null;
+}
 
 export default function ProjectsPage() {
   const [search, setSearch] = useState("");
   const [clockInModalOpen, setClockInModalOpen] = useState(false);
   const [clockOutModalOpen, setClockOutModalOpen] = useState(false);
-  const [selectedClockIn, setSelectedClockIn] = useState<Set<string>>(
-    new Set(["u1", "u2", "u3"]),
-  );
-  const [selectedClockOut, setSelectedClockOut] = useState<Set<string>>(
-    new Set(["p1", "p2", "p3", "p4"]),
-  );
+  const [selectedClockIn, setSelectedClockIn] = useState<Set<string>>(new Set());
+  const [selectedClockOut, setSelectedClockOut] = useState<Set<string>>(new Set());
   const [modalSearch, setModalSearch] = useState("");
   const [isClockInModalOpen, setIsClockInModalOpen] = useState(false);
   const [isClockOutModalOpen, setIsClockOutModalOpen] = useState(false);
+  const [clockedInCrew, setClockdInCrew] = useState<CrewMember[]>([]);
+  const [clockedOutCrew, setClockdOutCrew] = useState<CrewMember[]>([]);
+  const [absentCrew, setAbsentCrew] = useState<CrewMember[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Load crew data on mount
+  useEffect(() => {
+    const fetchClockInOutData = async () => {
+      try {
+        const supabase = getSupabase();
+
+        // Get today's clock-in records
+        const today = new Date().toISOString().split("T")[0];
+        const { data: clockInData } = await supabase
+          .from("clock_in_records")
+          .select("*, users(*)")
+          .eq("status", "active")
+          .gte("clock_in_time", today);
+
+        // Get today's clock-out records
+        const { data: clockOutData } = await supabase
+          .from("clock_in_records")
+          .select("*, users(*)")
+          .not("clock_out_time", "is", null)
+          .gte("clock_in_time", today);
+
+        // Transform data to match UI structure
+        if (clockInData) {
+          const clockInCrew = clockInData.map((record: any) => ({
+            id: record.user_id,
+            name: record.users?.full_name || "Unknown",
+            role: record.users?.title || "Staff",
+            time: new Date(record.clock_in_time).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            }),
+            location: "Site Location",
+          }));
+          setClockdInCrew(clockInCrew);
+        }
+
+        if (clockOutData) {
+          const clockOutCrew = clockOutData.map((record: any) => ({
+            id: record.user_id,
+            name: record.users?.full_name || "Unknown",
+            role: record.users?.title || "Staff",
+            time: new Date(record.clock_out_time).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            }),
+            status: "Shift Ended",
+          }));
+          setClockdOutCrew(clockOutCrew);
+        }
+      } catch (error) {
+        console.error("[v0] Error fetching clock-in/out data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchClockInOutData();
+  }, []);
 
   const toggleClockIn = (id: string) => {
     const next = new Set(selectedClockIn);
@@ -196,6 +129,89 @@ export default function ProjectsPage() {
     setSelectedClockOut(next);
   };
 
+  const handleClockIn = async () => {
+    if (selectedClockIn.size === 0) {
+      alert("Select at least one employee to clock in");
+      return;
+    }
+
+    try {
+      // Get current location
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          async (position) => {
+            for (const id of selectedClockIn) {
+              await fetch("/api/clock-in/checkin", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+                },
+                body: JSON.stringify({
+                  location_lat: position.coords.latitude,
+                  location_lng: position.coords.longitude,
+                  biometric_verified: false,
+                  notes: "Clock in via web interface",
+                }),
+              });
+            }
+            setClockInModalOpen(false);
+            setSelectedClockIn(new Set());
+            alert("Successfully clocked in!");
+          },
+          (error) => {
+            console.error("Geolocation error:", error);
+            alert("Unable to get location. Please enable location services.");
+          }
+        );
+      }
+    } catch (error) {
+      console.error("Error clocking in:", error);
+      alert("Error clocking in employees");
+    }
+  };
+
+  const handleClockOut = async () => {
+    if (selectedClockOut.size === 0) {
+      alert("Select at least one employee to clock out");
+      return;
+    }
+
+    try {
+      // Get current location
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          async (position) => {
+            for (const id of selectedClockOut) {
+              await fetch("/api/clock-in/checkout", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+                },
+                body: JSON.stringify({
+                  location_lat: position.coords.latitude,
+                  location_lng: position.coords.longitude,
+                  notes: "Clock out via web interface",
+                }),
+              });
+            }
+            setClockOutModalOpen(false);
+            setSelectedClockOut(new Set());
+            alert("Successfully clocked out!");
+          },
+          (error) => {
+            console.error("Geolocation error:", error);
+            alert("Unable to get location. Please enable location services.");
+          }
+        );
+      }
+    } catch (error) {
+      console.error("Error clocking out:", error);
+      alert("Error clocking out employees");
+    }
+  };
+
   const getShiftStatusColor = (status: string) => {
     switch (status) {
       case "FULL SHIFT":
@@ -208,6 +224,25 @@ export default function ProjectsPage() {
         return "text-slate-500";
     }
   };
+
+  // Filter crew based on search
+  const filteredClocked = clockedInCrew.filter(
+    (member) =>
+      member.name.toLowerCase().includes(search.toLowerCase()) ||
+      member.role.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const filteredClockOut = clockedOutCrew.filter(
+    (member) =>
+      member.name.toLowerCase().includes(search.toLowerCase()) ||
+      member.role.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const filteredAbsent = absentCrew.filter(
+    (member) =>
+      member.name.toLowerCase().includes(search.toLowerCase()) ||
+      member.role.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <AppShell title="Projects">
@@ -378,11 +413,11 @@ export default function ProjectsPage() {
                 </h3>
               </div>
               <span className="bg-emerald-100 text-emerald-700 font-bold px-2.5 py-0.5 rounded-full text-xs">
-                {clockedInCrew.length + 35} Members
+                {filteredClocked.length + 35} Members
               </span>
             </div>
             <div className="flex flex-col gap-3">
-              {clockedInCrew.map((member) => (
+              {filteredClocked.map((member) => (
                 <CrewCard key={member.id} member={member} type="in" />
               ))}
             </div>
@@ -398,11 +433,11 @@ export default function ProjectsPage() {
                 </h3>
               </div>
               <span className="bg-blue-100 text-blue-700 font-bold px-2.5 py-0.5 rounded-full text-xs">
-                {clockedOutCrew.length + 2} Members
+                {filteredClockOut.length + 2} Members
               </span>
             </div>
             <div className="flex flex-col gap-3">
-              {clockedOutCrew.map((member) => (
+              {filteredClockOut.map((member) => (
                 <CrewCard key={member.id} member={member} type="out" />
               ))}
             </div>
@@ -416,11 +451,11 @@ export default function ProjectsPage() {
                 <h3 className="text-lg font-semibold text-slate-900">Absent</h3>
               </div>
               <span className="bg-red-100 text-red-700 font-bold px-2.5 py-0.5 rounded-full text-xs">
-                {absentCrew.length} Members
+                {filteredAbsent.length} Members
               </span>
             </div>
             <div className="flex flex-col gap-3">
-              {absentCrew.map((member) => (
+              {filteredAbsent.map((member) => (
                 <AbsentCard key={member.id} member={member} />
               ))}
             </div>
@@ -544,7 +579,7 @@ export default function ProjectsPage() {
             <div className="p-4 border-t border-slate-200 flex gap-3">
               <Button
                 className="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-bold h-12"
-                onClick={() => setClockInModalOpen(false)}
+                onClick={handleClockIn}
               >
                 <LogIn className="h-5 w-5 mr-2" />
                 CLOCK IN SELECTED
@@ -641,7 +676,7 @@ export default function ProjectsPage() {
             <div className="p-4 border-t border-slate-200 flex gap-3">
               <Button
                 className="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-bold h-12"
-                onClick={() => setClockOutModalOpen(false)}
+                onClick={handleClockOut}
               >
                 <LogOut className="h-5 w-5 mr-2" />
                 CLOCK OUT SELECTED

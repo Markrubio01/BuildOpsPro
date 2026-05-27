@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { Button } from "@/components/ui/button";
+import { getSupabase } from "@/lib/supabase";
 import {
   Select,
   SelectContent,
@@ -21,51 +22,86 @@ import { cn } from "@/lib/utils";
 
 type DayStatus = "present" | "absent" | "ot" | "weekend" | "holiday" | null;
 
-const daysData: Record<
-  number,
-  { status: DayStatus; hours: number; project: string }
-> = {
-  1: { status: "weekend", hours: 0, project: "" },
-  2: { status: "present", hours: 8.0, project: "Core Construction" },
-  3: { status: "present", hours: 8.0, project: "Core Construction" },
-  4: { status: "ot", hours: 10.5, project: "Infrastructure Phase 2" },
-  5: { status: "present", hours: 8.0, project: "Structural Slab" },
-  6: { status: "present", hours: 8.0, project: "Structural Slab" },
-  7: { status: "weekend", hours: 0, project: "" },
-  8: { status: "weekend", hours: 0, project: "" },
-  9: { status: "absent", hours: 0, project: "Medical Leave" },
-  10: { status: "present", hours: 8.0, project: "Site Cleanup" },
-  11: { status: "present", hours: 8.0, project: "Main Lobby Floor" },
-  12: { status: "present", hours: 8.0, project: "Main Lobby Floor" },
-  13: { status: "present", hours: 8.0, project: "Electrical Finish" },
-  14: { status: "weekend", hours: 0, project: "" },
-  15: { status: "weekend", hours: 0, project: "" },
-  16: { status: "present", hours: 8.0, project: "Exterior Glass" },
-  17: { status: "ot", hours: 9.5, project: "Exterior Glass" },
-  18: { status: "present", hours: 8.0, project: "HVAC Install" },
-  19: { status: "present", hours: 8.0, project: "HVAC Install" },
-  20: { status: "holiday", hours: 0, project: "Company Holiday" },
-  21: { status: "weekend", hours: 0, project: "" },
-  22: { status: "weekend", hours: 0, project: "" },
-  23: { status: "present", hours: 8.0, project: "Rooftop Sealant" },
-  24: { status: "ot", hours: 11.0, project: "Rooftop Sealant" },
-  25: { status: "present", hours: 8.0, project: "Inspection Prep" },
-  26: { status: "present", hours: 8.0, project: "Inspection Prep" },
-  27: { status: "present", hours: 8.0, project: "Compliance Review" },
-  28: { status: "weekend", hours: 0, project: "" },
-  29: { status: "weekend", hours: 0, project: "" },
-  30: { status: "present", hours: 8.0, project: "Structural Seals" },
-  31: { status: "present", hours: 8.0, project: "Structural Seals" },
-};
-
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 export default function TimesheetPage() {
   const [selectedDay, setSelectedDay] = useState<number | null>(5);
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [selectedEmployee, setSelectedEmployee] = useState<string | null>("sarah");
+  const [daysData, setDaysData] = useState<Record<number, { status: DayStatus; hours: number; project: string }>>({});
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Oct 2023 starts on a Sunday, Sunday = index 6 in Mon-Sun layout
-  const startOffset = 6;
-  const daysInMonth = 31;
+  // Get days in month and start offset
+  const year = currentMonth.getFullYear();
+  const month = currentMonth.getMonth();
+  const firstDay = new Date(year, month, 1);
+  const startOffset = firstDay.getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  const handlePrevMonth = () => {
+    setCurrentMonth(new Date(year, month - 1));
+  };
+
+  const handleNextMonth = () => {
+    setCurrentMonth(new Date(year, month + 1));
+  };
+
+  // Fetch timesheet data on mount and when month/employee changes
+  useEffect(() => {
+    const fetchTimesheetData = async () => {
+      try {
+        setIsLoading(true);
+        const supabase = getSupabase();
+
+        const monthStart = new Date(year, month, 1).toISOString().split("T")[0];
+        const monthEnd = new Date(year, month + 1, 0).toISOString().split("T")[0];
+
+        // Fetch timesheet entries for the month
+        const { data: entries } = await supabase
+          .from("timesheet_entries")
+          .select("date, hours_worked, task_description")
+          .gte("date", monthStart)
+          .lte("date", monthEnd)
+          .eq("status", "approved");
+
+        // Build day data from entries
+        const newDaysData: Record<number, { status: DayStatus; hours: number; project: string }> = {};
+        
+        // Initialize all days with weekend status first
+        for (let i = 1; i <= daysInMonth; i++) {
+          const date = new Date(year, month, i);
+          const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+          newDaysData[i] = {
+            status: isWeekend ? "weekend" : null,
+            hours: 0,
+            project: "",
+          };
+        }
+
+        // Update with entries from database
+        if (entries && entries.length > 0) {
+          entries.forEach((entry: any) => {
+            const date = new Date(entry.date);
+            const dayOfMonth = date.getDate();
+
+            newDaysData[dayOfMonth] = {
+              status: entry.hours_worked > 8 ? "ot" : "present",
+              hours: entry.hours_worked,
+              project: entry.task_description,
+            };
+          });
+        }
+        
+        setDaysData(newDaysData);
+      } catch (error) {
+        console.error("[v0] Error fetching timesheet data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchTimesheetData();
+  }, [year, month, selectedEmployee, daysInMonth]);
 
   const stats = useMemo(() => {
     const values = Object.values(daysData);
@@ -127,13 +163,22 @@ export default function TimesheetPage() {
             <div className="flex flex-col gap-4">
               <div className="flex items-center gap-3">
                 <h2 className="text-xl md:text-2xl font-bold tracking-tight">
-                  October 2023
+                  {currentMonth.toLocaleString("default", {
+                    month: "long",
+                    year: "numeric",
+                  })}
                 </h2>
                 <div className="flex items-center border border-slate-200 rounded-md">
-                  <button className="p-1.5 hover:bg-slate-50 transition-colors">
+                  <button
+                    onClick={handlePrevMonth}
+                    className="p-1.5 hover:bg-slate-50 transition-colors"
+                  >
                     <ChevronLeft className="h-4 w-4" />
                   </button>
-                  <button className="p-1.5 hover:bg-slate-50 border-l border-slate-200 transition-colors">
+                  <button
+                    onClick={handleNextMonth}
+                    className="p-1.5 hover:bg-slate-50 border-l border-slate-200 transition-colors"
+                  >
                     <ChevronRight className="h-4 w-4" />
                   </button>
                 </div>
@@ -160,7 +205,10 @@ export default function TimesheetPage() {
               </div>
             </div>
             <div className="flex flex-col gap-4">
-              <Select defaultValue="sarah">
+              <Select
+                value={selectedEmployee || "sarah"}
+                onValueChange={setSelectedEmployee}
+              >
                 <SelectTrigger className="w-full md:w-72 h-11 bg-white">
                   <div className="flex items-center gap-2">
                     <User className="h-4 w-4 text-slate-400" />
@@ -216,7 +264,7 @@ export default function TimesheetPage() {
 
             {Array.from({ length: daysInMonth }).map((_, i) => {
               const day = i + 1;
-              const data = daysData[day];
+              const data = daysData[day] || { status: null, hours: 0, project: "" };
               const isSelected = selectedDay === day;
               return (
                 <button

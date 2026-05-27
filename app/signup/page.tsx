@@ -1,140 +1,269 @@
-"use client"
+'use client'
 
-import { useState } from "react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { ArrowLeft, ArrowRight, Building2, Check } from "lucide-react"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-
-const steps = [
-  { id: 1, title: "Personal Details", desc: "Your identity credentials" },
-  { id: 2, title: "Company Info", desc: "Employer & site details" },
-  { id: 3, title: "Security Setup", desc: "Secure your account" },
-]
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { ArrowRight, Mail, KeyRound, User, Building2, Loader2 } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { signupUser } from '@/lib/auth'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 export default function SignupPage() {
   const router = useRouter()
-  const [step, setStep] = useState(1)
+  const [formData, setFormData] = useState({
+    fullName: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    department: '',
+  })
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState('')
 
-  const next = () => {
-    if (step < 3) setStep(step + 1)
-    else router.push("/dashboard")
+  const departments = ['Engineering', 'Operations', 'Management', 'Safety', 'HR']
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
+    setFormData((prev) => ({ ...prev, [name]: value }))
   }
-  const back = () => (step > 1 ? setStep(step - 1) : router.push("/login"))
+
+  const handleSelectChange = (value: string) => {
+    setFormData((prev) => ({ ...prev, department: value }))
+  }
+
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+    setIsLoading(true)
+
+    // Validation
+    if (!formData.fullName.trim()) {
+      setError('Full name is required')
+      setIsLoading(false)
+      return
+    }
+
+    if (!formData.email.includes('@')) {
+      setError('Valid email is required')
+      setIsLoading(false)
+      return
+    }
+
+    if (formData.password.length < 6) {
+      setError('Password must be at least 6 characters')
+      setIsLoading(false)
+      return
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match')
+      setIsLoading(false)
+      return
+    }
+
+    if (!formData.department) {
+      setError('Department is required')
+      setIsLoading(false)
+      return
+    }
+
+    try {
+      const result = await signupUser(formData.email, formData.password, formData.fullName, formData.department)
+
+      if (result.error) {
+        setError(result.error)
+      } else {
+        console.log('[v0] Signup successful, redirecting to dashboard')
+        router.push('/dashboard')
+      }
+    } catch (err) {
+      console.error('[v0] Signup error:', err)
+      setError('Sign up failed. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
-      <header className="h-16 border-b border-slate-200 bg-white px-4 md:px-8 flex items-center justify-between">
-        <Link href="/login" className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-slate-950 rounded flex items-center justify-center">
-            <Building2 className="h-4 w-4 text-white" strokeWidth={2.5} />
-          </div>
-          <span className="font-black uppercase tracking-tighter text-slate-950">BuildOps Pro</span>
-        </Link>
-        <Link href="/login" className="text-xs font-bold text-slate-600 hover:text-slate-900 uppercase tracking-widest">
-          Already have access?
-        </Link>
-      </header>
+    <div className="relative min-h-screen flex items-center justify-center p-4 md:p-8 overflow-hidden bg-slate-950">
+      <div className="absolute inset-0 z-0">
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950" />
+        <div className="absolute inset-0 blueprint-grid opacity-40" />
+        <div className="absolute -top-40 -right-40 w-96 h-96 bg-slate-800/40 rounded-full blur-3xl" />
+        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-slate-800/40 rounded-full blur-3xl" />
+      </div>
 
-      <main className="flex-1 flex items-center justify-center p-4 md:p-8">
-        <div className="w-full max-w-2xl">
-          {/* Progress steps */}
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-3">
-              {steps.map((s, i) => (
-                <div key={s.id} className="flex items-center flex-1">
-                  <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-colors ${
-                      step > s.id
-                        ? "bg-slate-900 text-white border-slate-900"
-                        : step === s.id
-                          ? "bg-white text-slate-900 border-slate-900"
-                          : "bg-white text-slate-400 border-slate-200"
-                    }`}
-                  >
-                    {step > s.id ? <Check className="h-4 w-4" /> : s.id}
-                  </div>
-                  {i < steps.length - 1 && (
-                    <div className={`flex-1 h-0.5 mx-2 ${step > s.id ? "bg-slate-900" : "bg-slate-200"}`} />
-                  )}
-                </div>
-              ))}
+      <main className="relative z-10 w-full max-w-6xl grid grid-cols-1 md:grid-cols-12 bg-white border border-slate-200 shadow-2xl overflow-hidden rounded-lg">
+        <section className="hidden md:flex md:col-span-5 bg-slate-950 p-10 flex-col justify-between text-white relative">
+          <div className="absolute inset-0 blueprint-grid opacity-30" />
+          <div className="relative z-10">
+            <div className="flex items-center gap-3 mb-12">
+              <div className="w-10 h-10 bg-white flex items-center justify-center rounded-md">
+                <Building2 className="h-6 w-6 text-slate-950" strokeWidth={2.5} />
+              </div>
+              <span className="text-xl font-black tracking-tighter uppercase">BuildOps Pro</span>
             </div>
-            <div>
-              <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">
-                Step {step} of {steps.length}
-              </p>
-              <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-950 mt-1">
-                {steps[step - 1].title}
-              </h1>
-              <p className="text-slate-600 text-sm mt-1">{steps[step - 1].desc}</p>
-            </div>
+            <h1 className="text-4xl font-bold mb-4 leading-tight tracking-tight">
+              Join the Team.
+            </h1>
+            <p className="text-slate-300 text-base leading-relaxed">
+              Create your account to access the industrial construction management platform. Manage projects, track time, and oversee operations.
+            </p>
           </div>
 
-          {/* Form card */}
-          <div className="bg-white border border-slate-200 rounded-lg p-6 md:p-8">
-            {step === 1 && (
-              <div className="space-y-5">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Field label="First Name" placeholder="Marcus" />
-                  <Field label="Last Name" placeholder="Thorne" />
-                </div>
-                <Field label="Work Email" placeholder="m.thorne@industrialcorp.com" type="email" />
-                <Field label="Phone Number" placeholder="+1 (555) 123-4567" type="tel" />
-                <Field label="Trade / Role" placeholder="Site Foreman" />
-              </div>
-            )}
-            {step === 2 && (
-              <div className="space-y-5">
-                <Field label="Company Name" placeholder="Industrial Corp." />
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Field label="Employee ID" placeholder="#44021" />
-                  <Field label="Hire Date" type="date" />
-                </div>
-                <Field label="Primary Site Code" placeholder="SKY-002" />
-                <Field label="Supervisor Email" placeholder="supervisor@industrialcorp.com" type="email" />
-              </div>
-            )}
-            {step === 3 && (
-              <div className="space-y-5">
-                <Field label="Create Password" placeholder="••••••••••••" type="password" />
-                <Field label="Confirm Password" placeholder="••••••••••••" type="password" />
-                <div className="p-4 border border-slate-200 rounded-md bg-slate-50">
-                  <p className="text-[11px] font-bold text-slate-900 uppercase tracking-widest mb-2">
-                    Password Requirements
-                  </p>
-                  <ul className="text-xs text-slate-600 space-y-1">
-                    <li>• Minimum 12 characters</li>
-                    <li>• At least one uppercase letter and number</li>
-                    <li>• One special character (!@#$%)</li>
-                  </ul>
-                </div>
-              </div>
-            )}
+          <div className="relative z-10">
+            <p className="text-slate-300 text-sm">
+              Already have an account?{' '}
+              <Link href="/login" className="text-white font-semibold hover:underline">
+                Sign in here
+              </Link>
+            </p>
+          </div>
+        </section>
 
-            <div className="flex items-center justify-between gap-3 mt-8 pt-6 border-t border-slate-100">
-              <Button variant="ghost" onClick={back}>
-                <ArrowLeft className="h-4 w-4" />
-                {step === 1 ? "Back to Sign In" : "Previous"}
+        <section className="col-span-1 md:col-span-7 p-6 md:p-12 lg:p-16 flex flex-col justify-center">
+          <div className="max-w-md">
+            <h2 className="text-3xl md:text-4xl font-black tracking-tight text-slate-950 mb-2">
+              Create Account
+            </h2>
+            <p className="text-slate-600 text-sm mb-8">
+              Sign up to get started with BuildOps Pro
+            </p>
+
+            <form onSubmit={handleSignup} className="space-y-5">
+              {error && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+                  <p className="text-sm text-red-700 font-medium">{error}</p>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <label htmlFor="fullName" className="text-[11px] font-bold uppercase tracking-widest text-slate-900">
+                  Full Name
+                </label>
+                <div className="relative">
+                  <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Input
+                    id="fullName"
+                    name="fullName"
+                    type="text"
+                    placeholder="John Doe"
+                    className="h-12 pl-10 bg-slate-50 border-slate-200"
+                    value={formData.fullName}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="email" className="text-[11px] font-bold uppercase tracking-widest text-slate-900">
+                  Work Email
+                </label>
+                <div className="relative">
+                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    placeholder="john.doe@company.com"
+                    className="h-12 pl-10 bg-slate-50 border-slate-200"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="department" className="text-[11px] font-bold uppercase tracking-widest text-slate-900">
+                  Department
+                </label>
+                <Select value={formData.department} onValueChange={handleSelectChange}>
+                  <SelectTrigger className="h-12 bg-slate-50 border-slate-200">
+                    <SelectValue placeholder="Select department" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {departments.map((dept) => (
+                      <SelectItem key={dept} value={dept}>
+                        {dept}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="password" className="text-[11px] font-bold uppercase tracking-widest text-slate-900">
+                  Password
+                </label>
+                <div className="relative">
+                  <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Input
+                    id="password"
+                    name="password"
+                    type="password"
+                    placeholder="••••••••••••"
+                    className="h-12 pl-10 bg-slate-50 border-slate-200"
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="confirmPassword" className="text-[11px] font-bold uppercase tracking-widest text-slate-900">
+                  Confirm Password
+                </label>
+                <div className="relative">
+                  <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Input
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    type="password"
+                    placeholder="••••••••••••"
+                    className="h-12 pl-10 bg-slate-50 border-slate-200"
+                    value={formData.confirmPassword}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </div>
+              </div>
+
+              <Button
+                type="submit"
+                size="lg"
+                className="w-full h-12 text-base mt-6"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Creating Account...
+                  </>
+                ) : (
+                  <>
+                    Create Account
+                    <ArrowRight className="h-4 w-4" />
+                  </>
+                )}
               </Button>
-              <Button onClick={next}>
-                {step === 3 ? "Request Access" : "Continue"}
-                <ArrowRight className="h-4 w-4" />
-              </Button>
-            </div>
+            </form>
+
+            <p className="text-center text-[11px] text-slate-500 uppercase tracking-widest mt-6">
+              Already registered? <Link href="/login" className="font-semibold text-slate-900 hover:underline">Sign in</Link>
+            </p>
           </div>
-        </div>
+        </section>
       </main>
-    </div>
-  )
-}
-
-function Field({ label, ...props }: { label: string } & React.InputHTMLAttributes<HTMLInputElement>) {
-  return (
-    <div className="space-y-2">
-      <label className="text-[11px] font-bold uppercase tracking-widest text-slate-900 block">{label}</label>
-      <Input {...props} className="h-12 bg-slate-50 border-slate-200" />
     </div>
   )
 }

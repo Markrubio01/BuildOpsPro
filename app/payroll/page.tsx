@@ -1,40 +1,143 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { ChevronDown, FileText, Check, AlertCircle } from "lucide-react"
 import { AppShell } from "@/components/layout/app-shell"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { getSupabase } from "@/lib/supabase"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
-const members = [
-  {
-    id: 1,
-    name: "Elena Rodriguez",
-    initials: "ER",
-    role: "Structural Lead • Level 4",
-    netPay: 4850.42,
-    baseHours: 80,
-    otHours: 12,
-    absentDays: 0,
-    rate: 48,
-    basePay: 3840,
-    otPay: 864,
-    deductions: 241.58,
-  },
-  { id: 2, name: "James Wilson", initials: "JW", role: "Heavy Equipment Op.", netPay: 4120, baseHours: 80, otHours: 8, absentDays: 0, rate: 42, basePay: 3360, otPay: 504, deductions: 256 },
-  { id: 3, name: "Sarah Chen", initials: "SC", role: "Electrical Specialist", netPay: 3950.15, baseHours: 80, otHours: 6, absentDays: 0, rate: 40, basePay: 3200, otPay: 360, deductions: 390.85 },
-  { id: 4, name: "David Miller", initials: "DM", role: "Finishing Carpentry", netPay: 3680, baseHours: 80, otHours: 5, absentDays: 1, rate: 38, basePay: 3040, otPay: 285, deductions: 355 },
-  { id: 5, name: "Aisha Patel", initials: "AP", role: "Safety Inspector", netPay: 3420, baseHours: 80, otHours: 0, absentDays: 0, rate: 36, basePay: 2880, otPay: 0, deductions: 220 },
-]
+interface PayrollMember {
+  id: string | number
+  name: string
+  initials: string
+  role: string
+  netPay: number
+  baseHours: number
+  otHours: number
+  absentDays: number
+  rate: number
+  basePay: number
+  otPay: number
+  deductions: number
+}
 
 export default function PayrollPage() {
   const [selected, setSelected] = useState(0)
   const [stubStatus, setStubStatus] = useState<"idle" | "generating" | "success" | "error">("idle")
-  const member = members[selected]
+  const [selectedProject, setSelectedProject] = useState("Riverside Commercial Complex")
+  const [isChangeProjectOpen, setIsChangeProjectOpen] = useState(false)
+  const [members, setMembers] = useState<PayrollMember[]>([])
+  const [projects, setProjects] = useState<Array<{ id: string; name: string; status: string }>>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const member = members?.[selected] || null
+
+  // Fetch payroll data on mount
+  useEffect(() => {
+    const fetchPayrollData = async () => {
+      try {
+        const supabase = getSupabase()
+
+        // Get projects
+        const { data: projectsData } = await supabase
+          .from("projects")
+          .select("id, name, status")
+          .limit(4)
+
+        if (projectsData) {
+          setProjects(projectsData)
+          if (projectsData.length > 0) {
+            setSelectedProject(projectsData[0].name)
+          }
+        }
+
+        // Get current period payroll records
+        const periodStart = new Date()
+        periodStart.setDate(1)
+        const periodEnd = new Date(periodStart.getFullYear(), periodStart.getMonth() + 1, 0)
+
+        const { data: payrollData } = await supabase
+          .from("payroll_records")
+          .select("*, users(*)")
+          .gte("period_start", periodStart.toISOString().split("T")[0])
+          .lte("period_end", periodEnd.toISOString().split("T")[0])
+
+        if (payrollData) {
+          const transformedMembers = payrollData.map((record: any) => ({
+            id: record.user_id,
+            name: record.users?.full_name || "Unknown",
+            initials: (record.users?.full_name || "??").split(" ").map((n: string) => n[0]).join(""),
+            role: record.users?.title || "Staff",
+            netPay: parseFloat(record.net_pay) || 0,
+            baseHours: parseFloat(record.hours_worked) || 0,
+            otHours: 0,
+            absentDays: 0,
+            rate: parseFloat(record.hourly_rate) || 0,
+            basePay: parseFloat(record.gross_pay) || 0,
+            otPay: 0,
+            deductions: parseFloat(record.total_deductions) || 0,
+          }));
+          setMembers(transformedMembers);
+        }
+      } catch (error) {
+        console.error("[v0] Error fetching payroll data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchPayrollData()
+  }, [])
 
   const generateStub = () => {
     setStubStatus("generating")
     setTimeout(() => setStubStatus(Math.random() > 0.3 ? "success" : "error"), 1500)
+  }
+
+  const handleChangeProject = async (projectName: string) => {
+    if (!member) return
+    
+    try {
+      const projectId = projects.find((p) => p.name === projectName)?.id
+      const response = await fetch("/api/payroll", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+        },
+        body: JSON.stringify({
+          project_id: projectId,
+          period_start: new Date().toISOString().split("T")[0],
+          period_end: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().split("T")[0],
+          changes: [
+            {
+              user_id: member.id,
+              project_id: projectId,
+              total_amount: member.netPay,
+            },
+          ],
+        }),
+      })
+
+      if (response.ok) {
+        setSelectedProject(projectName)
+        setIsChangeProjectOpen(false)
+        alert("Project changed successfully!")
+      } else {
+        alert("Failed to change project")
+      }
+    } catch (error) {
+      console.error("Error changing project:", error)
+      alert("Error changing project")
+    }
   }
 
   return (
@@ -45,8 +148,12 @@ export default function PayrollPage() {
           <div className="lg:col-span-2 bg-white p-5 md:p-6 border border-slate-200 rounded-lg">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Current Project</span>
             <div className="flex items-center justify-between gap-3 mt-2">
-              <h2 className="text-xl md:text-2xl font-bold tracking-tight">Riverside Commercial Complex</h2>
-              <Button variant="outline" size="sm">
+              <h2 className="text-xl md:text-2xl font-bold tracking-tight">{selectedProject}</h2>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsChangeProjectOpen(true)}
+              >
                 Change <ChevronDown className="h-3 w-3" />
               </Button>
             </div>
@@ -136,11 +243,12 @@ export default function PayrollPage() {
 
           {/* Pay detail */}
           <div className="lg:col-span-5 lg:sticky lg:top-24">
+            {member ? (
             <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
               <div className="bg-slate-50 p-5 md:p-6 border-b border-slate-200">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-lg md:text-xl font-bold tracking-tight">Pay Detail</h3>
-                  <span className="text-[10px] font-bold text-slate-400 tracking-tight">ID: #BOP-{88219 + member.id}</span>
+                  <span className="text-[10px] font-bold text-slate-400 tracking-tight">ID: #BOP-{88219 + Number(member.id)}</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="w-14 h-14 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-base">
@@ -207,9 +315,52 @@ export default function PayrollPage() {
                 </p>
               </div>
             </div>
+            ) : (
+              <div className="bg-white border border-slate-200 rounded-lg p-6 text-center">
+                <p className="text-slate-500">Loading payroll data...</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Change Project Modal */}
+      <Dialog open={isChangeProjectOpen} onOpenChange={setIsChangeProjectOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Change Project</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-slate-600">
+              Select a different project to view payroll data
+            </p>
+            <div className="space-y-2">
+              {projects.map((project) => (
+                <button
+                  key={project.id}
+                  onClick={() => handleChangeProject(project.name)}
+                  className={cn(
+                    "w-full text-left p-4 rounded-lg border-2 transition-colors",
+                    selectedProject === project.name
+                      ? "border-slate-900 bg-slate-50"
+                      : "border-slate-200 hover:border-slate-400"
+                  )}
+                >
+                  <p className="font-semibold text-slate-900">{project.name}</p>
+                  <p className="text-xs text-slate-500 mt-1">Status: {project.status}</p>
+                </button>
+              ))}
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => setIsChangeProjectOpen(false)}
+              className="w-full"
+            >
+              Cancel
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   )
 }
