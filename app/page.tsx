@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { Plus, Loader2 } from "lucide-react"
 import { AppShell } from "@/components/layout/app-shell"
+import { ProtectedRoute } from "@/components/protected-route"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -21,7 +22,7 @@ interface DashboardStats {
   hoursThisMonth: number
 }
 
-export default function HomePage() {
+function HomeContent() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [statsLoading, setStatsLoading] = useState(true)
@@ -287,5 +288,13 @@ export default function HomePage() {
         </DialogContent>
       </Dialog>
     </AppShell>
+  )
+}
+
+export default function HomePage() {
+  return (
+    <ProtectedRoute>
+      <HomeContent />
+    </ProtectedRoute>
   )
 }

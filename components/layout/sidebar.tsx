@@ -1,9 +1,11 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { Home, HardHat, Clock, Wallet, UserCircle, LifeBuoy, Timer } from "lucide-react"
+import { usePathname, useRouter } from "next/navigation"
+import { Home, HardHat, Clock, Wallet, UserCircle, LifeBuoy, Timer, LogOut } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useAuth } from "@/lib/auth-context"
+import { Button } from "@/components/ui/button"
 
 const navigation = [
   { href: "/dashboard", label: "Home", icon: Home },
@@ -19,6 +21,20 @@ const secondary = [
 
 export function Sidebar() {
   const pathname = usePathname()
+  const router = useRouter()
+  const { session, logout } = useAuth()
+
+  const handleLogout = () => {
+    logout()
+    router.push('/login')
+  }
+
+  // Get user initials
+  const initials = session?.user.full_name
+    ?.split(' ')
+    .map((n) => n[0])
+    .join('')
+    .toUpperCase() || 'U'
 
   return (
     <aside className="hidden lg:flex flex-col h-screen w-64 fixed left-0 top-0 border-r border-slate-200 bg-white z-40">
@@ -69,18 +85,24 @@ export function Sidebar() {
               </Link>
             )
           })}
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-md transition-colors text-sm font-semibold text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+          >
+            <LogOut className="h-5 w-5" strokeWidth={2} />
+            <span>Sign Out</span>
+          </button>
         </div>
       </nav>
 
       <div className="p-4 border-t border-slate-100">
-
         <div className="mt-4 flex items-center gap-3 px-2">
           <div className="h-10 w-10 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-600">
-            MT
+            {initials}
           </div>
           <div className="overflow-hidden">
-            <p className="text-sm font-bold text-slate-900 truncate">Marcus Thorne</p>
-            <p className="text-xs text-slate-500">Site Manager</p>
+            <p className="text-sm font-bold text-slate-900 truncate">{session?.user.full_name || 'User'}</p>
+            <p className="text-xs text-slate-500">{session?.user.email || 'No email'}</p>
           </div>
         </div>
       </div>

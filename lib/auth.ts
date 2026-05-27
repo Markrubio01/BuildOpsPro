@@ -100,3 +100,66 @@ export function logoutUser() {
 export function isAuthenticated(): boolean {
   return getSession() !== null
 }
+
+// Sign Up Function
+export async function signupUser(email: string, password: string, fullName: string, department: string) {
+  try {
+    const supabase = createSupabaseClient()
+
+    // Check if email already exists
+    const { data: existingUser } = await supabase
+      .from("users")
+      .select("id")
+      .eq("email", email)
+      .single()
+
+    if (existingUser) {
+      return { error: "Email already registered" }
+    }
+
+    // Generate employee ID
+    const employeeId = `EMP-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 1000)).padStart(3, "0")}`
+
+    // Insert new user
+    const { data: newUser, error: insertError } = await supabase
+      .from("users")
+      .insert({
+        email,
+        password_hash: password,
+        full_name: fullName,
+        employee_id: employeeId,
+        department,
+        role: "worker",
+        title: "Employee",
+        hire_date: new Date().toISOString().split("T")[0],
+        status: "active",
+      })
+      .select("id, email, full_name, avatar_url")
+      .single()
+
+    if (insertError || !newUser) {
+      return { error: "Failed to create account" }
+    }
+
+    // Create session token
+    const expiresAt = Date.now() + 24 * 60 * 60 * 1000 // 24 hours
+
+    const session: Session = {
+      user: {
+        id: newUser.id,
+        email: newUser.email,
+        full_name: newUser.full_name,
+        avatar_url: newUser.avatar_url,
+      },
+      accessToken: `token_${newUser.id}_${Date.now()}`,
+      expiresAt,
+    }
+
+    saveSession(session)
+
+    return { session }
+  } catch (error) {
+    console.error("[v0] Signup error:", error)
+    return { error: "Sign up failed. Please try again." }
+  }
+}
