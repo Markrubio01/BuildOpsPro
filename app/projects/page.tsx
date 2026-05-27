@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Search,
   Filter,
@@ -22,6 +22,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
+import { getSupabase } from "@/lib/supabase";
 import {
   Select,
   SelectContent,
@@ -29,8 +30,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+
+interface CrewMember {
+  id: string;
+  name: string;
+  role: string;
+  time?: string;
+  location?: string;
+  status?: string;
+  scheduled?: string;
+  avatar?: string | null;
+}
+
 // Sample crew data matching the design
-const clockedInCrew = [
+const sampleClockIn: CrewMember[] = [
   {
     id: "1",
     name: "David Chen",
@@ -40,27 +53,9 @@ const clockedInCrew = [
     avatar:
       "https://lh3.googleusercontent.com/aida-public/AB6AXuAVpvL6ptLR5DMHKyrS2pGJz7gzK_07Gquv8WvLZcromnG1rq3pwLM323DCMWwhHcv-VV9T-CsfJ1oYa2xDBdYHPpA7srhlKlvT1TOOm1gq2zu5NHS6yFReg25pDKDu6TT6sa2CCpEX4IWqFSghshBkJvygiDyGBjJi6wNYaTLzjA-OuwLdgagnzkTMOLzr2sDQELLEaJZoM1uP9sFf1CCbytiLEyBRChHJDkj1lpOXdsMk3TTPE_ezJ_swA2G7IiKf6O7R4vnHNkkE",
   },
-  {
-    id: "2",
-    name: "Sarah Miller",
-    role: "Safety Compliance",
-    time: "07:30 AM",
-    location: "Main Office",
-    avatar:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuAx4wa7b-5D0c3w48q0oYJwOxT1eX4qWebusJLtMHo-jdKhiWJexQspdMwOEpLEBhn9gwb1Tu7pa7De7SHuzkjxQfiOxKCHkZwow6SaL_slGQvLks3TIOlWxJT6N6Dyy6PXqIqfXzY9fAX3gvKAz2h0fInJqMgSS3wMmQr47T1Nl0B-suhJUG05UOsucgjWjetdWW2DLi9CuW3vQoU49ZsHHC4S7v1VT7lZ6TGjtGLliV6FEukKhEC-aoGt-oRQ8MngN3kHZKazsTaM",
-  },
-  {
-    id: "3",
-    name: "Marcus Thorne",
-    role: "Foreman",
-    time: "06:45 AM",
-    location: "Zone B Entry",
-    avatar:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuDLUz6nSnFGc7-HJQUSYLOyfC4vX0mrJmHDN4gebC2hLcKCNk_Lm5SrjaivSsta7j6ubgP_mfe1vL0y-pd3LPNyODV-hbe8AP-XEwRVAJXj67V616SF-eCLJT7A_ay-URJYLlzXYqAll2VDQA5__BHYgyaC5BistmahkYNxOaTAnBjwBUqnMTJhsbdgLNIhB8hLywviU4ov-wqKwlANMfgdZn0-GuQYjbJuUvGh-Tr8fL0tVJaUf3LlC1KcYy3R9FY2K7gf9TYAmQQU",
-  },
 ];
 
-const clockedOutCrew = [
+const sampleClockOut: CrewMember[] = [
   {
     id: "4",
     name: "Elena Rodriguez",
@@ -70,18 +65,9 @@ const clockedOutCrew = [
     avatar:
       "https://lh3.googleusercontent.com/aida-public/AB6AXuDb_sBJfJD7aidNJ2e4z3SBIvGGze-BmseJ9SyUjNFGJsxSnq5t_wSGtE_gjegJsp1Zja7FSTzPnn3vCupd0xWIuZnGWF3igAxNPNmLESpHQgSp1uYJeEJNBu3zqNBy140aeUDcT3yUzEKANoBef6up4P1XNDzm7VLaGXMY-2SqGflmZ3ou0vPS8EIjDQIaR253qYHLOsWaZDPLWq8A2Jy7dSOTKiVuI_KgLSDDFRUVYZb48eobWzAzqCpa3xy_F-KcjeUYhOOm9TMJ",
   },
-  {
-    id: "5",
-    name: "James Wilson",
-    role: "Crane Operator",
-    time: "02:15 PM",
-    status: "Medical Leave",
-    avatar:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuB3of3tdCscnS6XZ7cFD7MeAzBmugy7SOkFwQ38bMpEmIkolgH-qjbfmm4SuzDnJsUnxJmSh7M-p5MaHyWjUVW0EAL-ymCCmCwwbCiz51oqflwNHKMcHiQh2upysGvv1vKmUpnaCojQ5l0vDhT1s5GRZsBNsRrQsz2Itb8vI7WGG8DuCIvJVPkspHEIlNNiyF1zMJywoGMLJx4YuRvxjvXCDd5tSmqW6mg_MHVZYyi2jZCukXmYL5wXdua-Lz2rdX5yNej2WoB_eLN",
-  },
 ];
 
-const absentCrew = [
+const sampleAbsent: CrewMember[] = [
   {
     id: "6",
     name: "Robert Vance",
@@ -90,14 +76,6 @@ const absentCrew = [
     scheduled: "08:00 AM",
     avatar:
       "https://lh3.googleusercontent.com/aida-public/AB6AXuCmQ4UxxEgbnGWNpA2P6Wr7QMrdQcmuGCGJS_tUFCiPD2rbzaTGdO4e30pb43NJPVgLZXkgDUTHqyPLULwvxe24JZeEEKt-vSlAkwtXMT_gDfRejgtDBYCsWfBEN8JbZGkOxAMSvpBtzcqxyxIRgx2EWhigGQB-9NKSP5wdL0gH5O2vUa9nwBc257EBYFs2vvuVYS_qtBdo8ZnPh6BX2zzY8CmW7Miqi0FARXGrkyPTe6WgI2HtWfi2UGTdtKgSg-RH3bUBXaehJ4vc",
-  },
-  {
-    id: "7",
-    name: "TBD Shift Fill",
-    role: "General Labor",
-    status: "Unassigned",
-    scheduled: "Night Shift",
-    avatar: null,
   },
 ];
 
@@ -172,15 +150,74 @@ export default function ProjectsPage() {
   const [search, setSearch] = useState("");
   const [clockInModalOpen, setClockInModalOpen] = useState(false);
   const [clockOutModalOpen, setClockOutModalOpen] = useState(false);
-  const [selectedClockIn, setSelectedClockIn] = useState<Set<string>>(
-    new Set(["u1", "u2", "u3"]),
-  );
-  const [selectedClockOut, setSelectedClockOut] = useState<Set<string>>(
-    new Set(["p1", "p2", "p3", "p4"]),
-  );
+  const [selectedClockIn, setSelectedClockIn] = useState<Set<string>>(new Set());
+  const [selectedClockOut, setSelectedClockOut] = useState<Set<string>>(new Set());
   const [modalSearch, setModalSearch] = useState("");
   const [isClockInModalOpen, setIsClockInModalOpen] = useState(false);
   const [isClockOutModalOpen, setIsClockOutModalOpen] = useState(false);
+  const [clockedInCrew, setClockdInCrew] = useState<CrewMember[]>(sampleClockIn);
+  const [clockedOutCrew, setClockdOutCrew] = useState<CrewMember[]>(sampleClockOut);
+  const [absentCrew, setAbsentCrew] = useState<CrewMember[]>(sampleAbsent);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Load crew data on mount
+  useEffect(() => {
+    const fetchClockInOutData = async () => {
+      try {
+        const supabase = getSupabase();
+
+        // Get today's clock-in records
+        const today = new Date().toISOString().split("T")[0];
+        const { data: clockInData } = await supabase
+          .from("clock_in_records")
+          .select("*, users(*)")
+          .eq("status", "active")
+          .gte("clock_in_time", today);
+
+        // Get today's clock-out records
+        const { data: clockOutData } = await supabase
+          .from("clock_in_records")
+          .select("*, users(*)")
+          .not("clock_out_time", "is", null)
+          .gte("clock_in_time", today);
+
+        // Transform data to match UI structure
+        if (clockInData) {
+          const clockInCrew = clockInData.map((record) => ({
+            id: record.user_id,
+            name: record.users?.full_name || "Unknown",
+            role: record.users?.title || "Staff",
+            time: new Date(record.clock_in_time).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            }),
+            location: "Site Location",
+          }));
+          setClockdInCrew([...sampleClockIn, ...clockInCrew].slice(0, 5));
+        }
+
+        if (clockOutData) {
+          const clockOutCrew = clockOutData.map((record) => ({
+            id: record.user_id,
+            name: record.users?.full_name || "Unknown",
+            role: record.users?.title || "Staff",
+            time: new Date(record.clock_out_time).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            }),
+            status: "Shift Ended",
+          }));
+          setClockdOutCrew([...sampleClockOut, ...clockOutCrew].slice(0, 5));
+        }
+      } catch (error) {
+        console.error("[v0] Error fetching clock-in/out data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchClockInOutData();
+  }, []);
 
   const toggleClockIn = (id: string) => {
     const next = new Set(selectedClockIn);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { Button } from "@/components/ui/button";
+import { getSupabase } from "@/lib/supabase";
 import {
   Select,
   SelectContent,
@@ -21,7 +22,7 @@ import { cn } from "@/lib/utils";
 
 type DayStatus = "present" | "absent" | "ot" | "weekend" | "holiday" | null;
 
-const daysData: Record<
+const sampleDaysData: Record<
   number,
   { status: DayStatus; hours: number; project: string }
 > = {
@@ -62,14 +63,16 @@ const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 export default function TimesheetPage() {
   const [selectedDay, setSelectedDay] = useState<number | null>(5);
-  const [currentMonth, setCurrentMonth] = useState(new Date(2023, 9)); // October 2023
-  const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [selectedEmployee, setSelectedEmployee] = useState<string | null>("sarah");
+  const [daysData, setDaysData] = useState(sampleDaysData);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Get days in month and start offset
   const year = currentMonth.getFullYear();
   const month = currentMonth.getMonth();
   const firstDay = new Date(year, month, 1);
-  const startOffset = firstDay.getDay(); // 0 = Sunday, 6 = Saturday
+  const startOffset = firstDay.getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
 
   const handlePrevMonth = () => {
@@ -79,6 +82,50 @@ export default function TimesheetPage() {
   const handleNextMonth = () => {
     setCurrentMonth(new Date(year, month + 1));
   };
+
+  // Fetch timesheet data on mount and when month/employee changes
+  useEffect(() => {
+    const fetchTimesheetData = async () => {
+      try {
+        setIsLoading(true);
+        const supabase = getSupabase();
+
+        const monthStart = new Date(year, month, 1).toISOString().split("T")[0];
+        const monthEnd = new Date(year, month + 1, 0).toISOString().split("T")[0];
+
+        // Fetch timesheet entries for the month
+        const { data: entries } = await supabase
+          .from("timesheet_entries")
+          .select("date, hours_worked, task_description")
+          .gte("date", monthStart)
+          .lte("date", monthEnd)
+          .eq("status", "approved");
+
+        // Build day data from entries
+        const newDaysData = { ...sampleDaysData };
+        if (entries) {
+          entries.forEach((entry) => {
+            const date = new Date(entry.date);
+            const dayOfMonth = date.getDate();
+            const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+
+            newDaysData[dayOfMonth] = {
+              status: entry.hours_worked > 8 ? "ot" : "present",
+              hours: entry.hours_worked,
+              project: entry.task_description,
+            };
+          });
+        }
+        setDaysData(newDaysData);
+      } catch (error) {
+        console.error("[v0] Error fetching timesheet data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchTimesheetData();
+  }, [year, month, selectedEmployee]);
 
   const stats = useMemo(() => {
     const values = Object.values(daysData);

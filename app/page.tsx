@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Plus, Loader2 } from "lucide-react"
 import { AppShell } from "@/components/layout/app-shell"
 import { Button } from "@/components/ui/button"
@@ -13,10 +13,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { getSupabase } from "@/lib/supabase"
+
+interface DashboardStats {
+  activeProjects: number
+  teamMembers: number
+  hoursThisMonth: number
+}
 
 export default function HomePage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [statsLoading, setStatsLoading] = useState(true)
+  const [stats, setStats] = useState<DashboardStats>({
+    activeProjects: 0,
+    teamMembers: 0,
+    hoursThisMonth: 0,
+  })
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -32,6 +45,52 @@ export default function HomePage() {
     "Safety",
     "HR",
   ]
+
+  // Fetch dashboard stats on mount
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const supabase = getSupabase()
+
+        // Get active projects count
+        const { count: projectCount } = await supabase
+          .from("projects")
+          .select("*", { count: "exact", head: true })
+          .eq("status", "active")
+
+        // Get team members count
+        const { count: memberCount } = await supabase
+          .from("users")
+          .select("*", { count: "exact", head: true })
+          .eq("status", "active")
+
+        // Get hours worked this month
+        const now = new Date()
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+        const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+
+        const { data: hoursData } = await supabase
+          .from("timesheet_entries")
+          .select("hours_worked")
+          .gte("date", monthStart.toISOString().split("T")[0])
+          .lte("date", monthEnd.toISOString().split("T")[0])
+
+        const totalHours = hoursData?.reduce((sum, entry) => sum + parseFloat(entry.hours_worked), 0) || 0
+
+        setStats({
+          activeProjects: projectCount || 0,
+          teamMembers: memberCount || 0,
+          hoursThisMonth: Math.round(totalHours),
+        })
+      } catch (error) {
+        console.error("[v0] Error fetching dashboard stats:", error)
+      } finally {
+        setStatsLoading(false)
+      }
+    }
+
+    fetchStats()
+  }, [])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
@@ -65,7 +124,13 @@ export default function HomePage() {
           end_date: "",
           department: "",
         })
-        // Refresh projects list or show success message
+        // Refresh stats
+        const supabase = getSupabase()
+        const { count } = await supabase
+          .from("projects")
+          .select("*", { count: "exact", head: true })
+          .eq("status", "active")
+        setStats((prev) => ({ ...prev, activeProjects: count || 0 }))
         alert("Project created successfully!")
       } else {
         alert("Failed to create project")
@@ -103,15 +168,15 @@ export default function HomePage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-white p-6 rounded-lg border border-slate-200">
             <p className="text-slate-600 text-sm font-medium">Active Projects</p>
-            <p className="text-2xl font-bold mt-2">0</p>
+            <p className="text-2xl font-bold mt-2">{statsLoading ? "-" : stats.activeProjects}</p>
           </div>
           <div className="bg-white p-6 rounded-lg border border-slate-200">
             <p className="text-slate-600 text-sm font-medium">Team Members</p>
-            <p className="text-2xl font-bold mt-2">0</p>
+            <p className="text-2xl font-bold mt-2">{statsLoading ? "-" : stats.teamMembers}</p>
           </div>
           <div className="bg-white p-6 rounded-lg border border-slate-200">
             <p className="text-slate-600 text-sm font-medium">Hours This Month</p>
-            <p className="text-2xl font-bold mt-2">0</p>
+            <p className="text-2xl font-bold mt-2">{statsLoading ? "-" : stats.hoursThisMonth}</p>
           </div>
         </div>
       </div>

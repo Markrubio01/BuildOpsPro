@@ -1,11 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { ChevronDown, FileText, Check, AlertCircle } from "lucide-react"
 import { AppShell } from "@/components/layout/app-shell"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { getSupabase } from "@/lib/supabase"
 import {
   Select,
   SelectContent,
@@ -14,14 +15,29 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-const projects = [
+interface PayrollMember {
+  id: string | number
+  name: string
+  initials: string
+  role: string
+  netPay: number
+  baseHours: number
+  otHours: number
+  absentDays: number
+  rate: number
+  basePay: number
+  otPay: number
+  deductions: number
+}
+
+const sampleProjects = [
   { id: "1", name: "Riverside Commercial Complex", status: "Processing" },
   { id: "2", name: "Downtown Office Complex", status: "Processing" },
   { id: "3", name: "Skyline Towers - Phase 2", status: "Completed" },
   { id: "4", name: "Waterfront Development", status: "Active" },
 ]
 
-const members = [
+const sampleMembers: PayrollMember[] = [
   {
     id: 1,
     name: "Elena Rodriguez",
@@ -45,9 +61,55 @@ const members = [
 export default function PayrollPage() {
   const [selected, setSelected] = useState(0)
   const [stubStatus, setStubStatus] = useState<"idle" | "generating" | "success" | "error">("idle")
-  const [selectedProject, setSelectedProject] = useState(projects[0].name)
+  const [selectedProject, setSelectedProject] = useState(sampleProjects[0].name)
   const [isChangeProjectOpen, setIsChangeProjectOpen] = useState(false)
+  const [members, setMembers] = useState<PayrollMember[]>(sampleMembers)
+  const [isLoading, setIsLoading] = useState(true)
   const member = members[selected]
+
+  // Fetch payroll data on mount
+  useEffect(() => {
+    const fetchPayrollData = async () => {
+      try {
+        const supabase = getSupabase()
+
+        // Get current period payroll records
+        const periodStart = new Date()
+        periodStart.setDate(1)
+        const periodEnd = new Date(periodStart.getFullYear(), periodStart.getMonth() + 1, 0)
+
+        const { data: payrollData } = await supabase
+          .from("payroll_records")
+          .select("*, users(*)")
+          .gte("period_start", periodStart.toISOString().split("T")[0])
+          .lte("period_end", periodEnd.toISOString().split("T")[0])
+
+        if (payrollData) {
+          const transformedMembers = payrollData.map((record, idx) => ({
+            id: record.user_id,
+            name: record.users?.full_name || "Unknown",
+            initials: (record.users?.full_name || "??").split(" ").map((n: string) => n[0]).join(""),
+            role: record.users?.title || "Staff",
+            netPay: parseFloat(record.net_pay) || 0,
+            baseHours: parseFloat(record.hours_worked) || 0,
+            otHours: 0,
+            absentDays: 0,
+            rate: parseFloat(record.hourly_rate) || 0,
+            basePay: parseFloat(record.gross_pay) || 0,
+            otPay: 0,
+            deductions: parseFloat(record.total_deductions) || 0,
+          }));
+          setMembers([...transformedMembers, ...sampleMembers.slice(transformedMembers.length)]);
+        }
+      } catch (error) {
+        console.error("[v0] Error fetching payroll data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchPayrollData()
+  }, [])
 
   const generateStub = () => {
     setStubStatus("generating")
@@ -63,13 +125,13 @@ export default function PayrollPage() {
           Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
         },
         body: JSON.stringify({
-          project_id: projects.find((p) => p.name === projectName)?.id,
-          period_start: "2023-10-01",
-          period_end: "2023-10-15",
+          project_id: sampleProjects.find((p) => p.name === projectName)?.id,
+          period_start: new Date().toISOString().split("T")[0],
+          period_end: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().split("T")[0],
           changes: [
             {
               user_id: member.id,
-              project_id: projects.find((p) => p.name === projectName)?.id,
+              project_id: sampleProjects.find((p) => p.name === projectName)?.id,
               total_amount: member.netPay,
             },
           ],
@@ -278,7 +340,7 @@ export default function PayrollPage() {
               Select a different project to view payroll data
             </p>
             <div className="space-y-2">
-              {projects.map((project) => (
+              {sampleProjects.map((project) => (
                 <button
                   key={project.id}
                   onClick={() => handleChangeProject(project.name)}
