@@ -178,15 +178,6 @@ export default function TimesheetPage() {
                   </SelectItem>
                 </SelectContent>
               </Select>
-              <div className="flex items-center gap-2 self-end">
-                <Button variant="secondary" size="sm">
-                  Today
-                </Button>
-                <Button variant="outline" size="sm">
-                  <Download className="h-3.5 w-3.5" />
-                  Export PDF
-                </Button>
-              </div>
             </div>
           </div>
 

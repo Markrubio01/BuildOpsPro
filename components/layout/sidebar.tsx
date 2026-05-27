@@ -14,7 +14,7 @@ const navigation = [
 
 const secondary = [
   { href: "/settings", label: "Settings", icon: UserCircle },
-  { href: "/help", label: "Help & Support", icon: LifeBuoy },
+  // { href: "/help", label: "Help & Support", icon: LifeBuoy },
 ]
 
 export function Sidebar() {

@@ -15,7 +15,7 @@ const sections = [
   { id: "personal", label: "Personal Info", icon: User },
   { id: "employment", label: "Employment", icon: Briefcase },
   { id: "security", label: "Security", icon: Shield },
-  { id: "notifications", label: "Notifications", icon: Bell },
+  // { id: "notifications", label: "Notifications", icon: Bell },
 ]
 
 export default function SettingsPage() {
@@ -37,11 +37,11 @@ export default function SettingsPage() {
           <div className="flex-1">
             <h1 className="text-xl md:text-2xl font-bold tracking-tight">Marcus Thorne</h1>
             <p className="text-slate-600 text-sm">Site Manager • Skyline Towers — Phase 2</p>
-            <div className="flex flex-wrap gap-2 mt-2">
+            {/* <div className="flex flex-wrap gap-2 mt-2">
               <Badge variant="success">OSHA 30-Hour</Badge>
               <Badge variant="success">First Aid / CPR</Badge>
               <Badge variant="warning">Renewal: 45 Days</Badge>
-            </div>
+            </div> */}
           </div>
           <Button variant="outline">Edit Profile</Button>
         </section>
@@ -212,13 +212,13 @@ function SecurityPanel() {
           </Button>
         </div>
       </PanelWrap>
-      <PanelWrap title="Two-Factor Authentication" desc="Additional verification layer for high-privilege actions">
+      {/* <PanelWrap title="Two-Factor Authentication" desc="Additional verification layer for high-privilege actions">
         <div className="space-y-3">
           <ToggleRow label="Authenticator App" desc="Use Google Authenticator or Authy for codes" checked />
           <ToggleRow label="Biometric Sign-In" desc="FaceID / TouchID on mobile devices" checked />
           <ToggleRow label="SMS Backup" desc="Receive codes via text message" />
         </div>
-      </PanelWrap>
+      </PanelWrap> */}
     </div>
   )
 }

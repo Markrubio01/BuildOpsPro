@@ -43,7 +43,7 @@ export default function PayrollPage() {
         {/* Header with project selector + period total */}
         <section className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
           <div className="lg:col-span-2 bg-white p-5 md:p-6 border border-slate-200 rounded-lg">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Current Environment</span>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Current Project</span>
             <div className="flex items-center justify-between gap-3 mt-2">
               <h2 className="text-xl md:text-2xl font-bold tracking-tight">Riverside Commercial Complex</h2>
               <Button variant="outline" size="sm">

@@ -80,21 +80,10 @@ export function Topbar({ title }: { title?: string }) {
         <div className="lg:hidden font-black uppercase tracking-tighter text-slate-900 truncate">
           {title || "BuildOps Pro"}
         </div>
-
-        <div className="hidden md:block relative w-96 max-w-full">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-          <Input
-            placeholder="Search projects, crew, or documents..."
-            className="pl-9 h-9 bg-slate-50 border-slate-200 text-sm"
-          />
-        </div>
       </div>
 
       <div className="flex items-center gap-2 md:gap-4">
-        <button className="relative p-2 hover:bg-slate-100 rounded-md transition-colors">
-          <Bell className="h-5 w-5 text-slate-600" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white" />
-        </button>
+
         <Link href="/settings" className="hidden md:inline-flex p-2 hover:bg-slate-100 rounded-md transition-colors">
           <Settings className="h-5 w-5 text-slate-600" />
         </Link>

@@ -98,10 +98,7 @@ export default function DashboardPage() {
             </p>
           </div>
           <div className="flex gap-3">
-            <Button variant="outline" size="default" className="h-10">
-              <Download className="h-4 w-4" />
-              <span className="hidden sm:inline">Export Reports</span>
-            </Button>
+
             <Button size="default" className="h-10">
               <Plus className="h-4 w-4" />
               <span>New Project</span>
@@ -139,14 +136,7 @@ export default function DashboardPage() {
             <h2 className="text-xl md:text-2xl font-bold tracking-tight">Project Portfolio</h2>
             <p className="text-slate-500 text-sm mt-0.5">Showing {projects.length} active projects</p>
           </div>
-          <div className="flex gap-1.5">
-            <button className="p-2 bg-white border border-slate-200 rounded text-slate-900 hover:bg-slate-50 transition-colors">
-              <Grid3x3 className="h-4 w-4" />
-            </button>
-            <button className="p-2 bg-white border border-slate-200 rounded text-slate-400 hover:text-slate-900 transition-colors">
-              <List className="h-4 w-4" />
-            </button>
-          </div>
+
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">

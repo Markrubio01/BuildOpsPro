@@ -358,9 +358,7 @@ export default function ProjectsPage() {
               className="pl-10 h-12 bg-white"
             />
           </div>
-          <Button variant="outline" className="h-12 w-12 p-0">
-            <Filter className="h-5 w-5" />
-          </Button>
+
         </div>
 
         {/* Mobile: Crew count */}
