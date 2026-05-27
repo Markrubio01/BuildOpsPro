@@ -144,14 +144,15 @@ CREATE INDEX IF NOT EXISTS idx_project_members_user ON project_team_members(user
 -- ============================================
 
 -- Insert Users (6 employees)
+-- NOTE: Password hash for all test users: BuildOps@123
 INSERT INTO users (email, password_hash, full_name, employee_id, department, role, phone, title, hire_date, status) 
 VALUES 
-  ('sarah.johnson@buildops.com', 'hashed_password_1', 'Sarah Johnson', 'EMP-2026-001', 'Engineering', 'supervisor', '+1-555-0101', 'Project Lead', '2024-01-15', 'active'),
-  ('mike.rodriguez@buildops.com', 'hashed_password_2', 'Mike Rodriguez', 'EMP-2026-002', 'Operations', 'worker', '+1-555-0102', 'Site Foreman', '2024-06-10', 'active'),
-  ('david.kim@buildops.com', 'hashed_password_3', 'David Kim', 'EMP-2026-003', 'Engineering', 'worker', '+1-555-0103', 'Structural Engineer', '2024-03-20', 'active'),
-  ('elena.martinez@buildops.com', 'hashed_password_4', 'Elena Martinez', 'EMP-2026-004', 'Safety', 'worker', '+1-555-0104', 'Safety Inspector', '2025-01-10', 'active'),
-  ('james.wilson@buildops.com', 'hashed_password_5', 'James Wilson', 'EMP-2026-005', 'Operations', 'worker', '+1-555-0105', 'Heavy Equipment Op.', '2023-09-05', 'active'),
-  ('aisha.patel@buildops.com', 'hashed_password_6', 'Aisha Patel', 'EMP-2026-006', 'Management', 'admin', '+1-555-0106', 'Project Manager', '2022-05-20', 'active')
+  ('sarah.johnson@buildops.com', 'BuildOps@123', 'Sarah Johnson', 'EMP-2026-001', 'Engineering', 'supervisor', '+1-555-0101', 'Project Lead', '2024-01-15', 'active'),
+  ('mike.rodriguez@buildops.com', 'BuildOps@123', 'Mike Rodriguez', 'EMP-2026-002', 'Operations', 'worker', '+1-555-0102', 'Site Foreman', '2024-06-10', 'active'),
+  ('david.kim@buildops.com', 'BuildOps@123', 'David Kim', 'EMP-2026-003', 'Engineering', 'worker', '+1-555-0103', 'Structural Engineer', '2024-03-20', 'active'),
+  ('elena.martinez@buildops.com', 'BuildOps@123', 'Elena Martinez', 'EMP-2026-004', 'Safety', 'worker', '+1-555-0104', 'Safety Inspector', '2025-01-10', 'active'),
+  ('james.wilson@buildops.com', 'BuildOps@123', 'James Wilson', 'EMP-2026-005', 'Operations', 'worker', '+1-555-0105', 'Heavy Equipment Op.', '2023-09-05', 'active'),
+  ('aisha.patel@buildops.com', 'BuildOps@123', 'Aisha Patel', 'EMP-2026-006', 'Management', 'admin', '+1-555-0106', 'Project Manager', '2022-05-20', 'active')
 ON CONFLICT (email) DO NOTHING;
 
 -- Insert Projects (4 projects)
