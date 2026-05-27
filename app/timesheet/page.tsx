@@ -62,10 +62,23 @@ const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 export default function TimesheetPage() {
   const [selectedDay, setSelectedDay] = useState<number | null>(5);
+  const [currentMonth, setCurrentMonth] = useState(new Date(2023, 9)); // October 2023
+  const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
 
-  // Oct 2023 starts on a Sunday, Sunday = index 6 in Mon-Sun layout
-  const startOffset = 6;
-  const daysInMonth = 31;
+  // Get days in month and start offset
+  const year = currentMonth.getFullYear();
+  const month = currentMonth.getMonth();
+  const firstDay = new Date(year, month, 1);
+  const startOffset = firstDay.getDay(); // 0 = Sunday, 6 = Saturday
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  const handlePrevMonth = () => {
+    setCurrentMonth(new Date(year, month - 1));
+  };
+
+  const handleNextMonth = () => {
+    setCurrentMonth(new Date(year, month + 1));
+  };
 
   const stats = useMemo(() => {
     const values = Object.values(daysData);
@@ -127,13 +140,22 @@ export default function TimesheetPage() {
             <div className="flex flex-col gap-4">
               <div className="flex items-center gap-3">
                 <h2 className="text-xl md:text-2xl font-bold tracking-tight">
-                  October 2023
+                  {currentMonth.toLocaleString("default", {
+                    month: "long",
+                    year: "numeric",
+                  })}
                 </h2>
                 <div className="flex items-center border border-slate-200 rounded-md">
-                  <button className="p-1.5 hover:bg-slate-50 transition-colors">
+                  <button
+                    onClick={handlePrevMonth}
+                    className="p-1.5 hover:bg-slate-50 transition-colors"
+                  >
                     <ChevronLeft className="h-4 w-4" />
                   </button>
-                  <button className="p-1.5 hover:bg-slate-50 border-l border-slate-200 transition-colors">
+                  <button
+                    onClick={handleNextMonth}
+                    className="p-1.5 hover:bg-slate-50 border-l border-slate-200 transition-colors"
+                  >
                     <ChevronRight className="h-4 w-4" />
                   </button>
                 </div>
@@ -160,7 +182,10 @@ export default function TimesheetPage() {
               </div>
             </div>
             <div className="flex flex-col gap-4">
-              <Select defaultValue="sarah">
+              <Select
+                value={selectedEmployee || "sarah"}
+                onValueChange={setSelectedEmployee}
+              >
                 <SelectTrigger className="w-full md:w-72 h-11 bg-white">
                   <div className="flex items-center gap-2">
                     <User className="h-4 w-4 text-slate-400" />

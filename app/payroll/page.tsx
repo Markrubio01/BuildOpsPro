@@ -5,6 +5,21 @@ import { ChevronDown, FileText, Check, AlertCircle } from "lucide-react"
 import { AppShell } from "@/components/layout/app-shell"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+
+const projects = [
+  { id: "1", name: "Riverside Commercial Complex", status: "Processing" },
+  { id: "2", name: "Downtown Office Complex", status: "Processing" },
+  { id: "3", name: "Skyline Towers - Phase 2", status: "Completed" },
+  { id: "4", name: "Waterfront Development", status: "Active" },
+]
 
 const members = [
   {
@@ -30,11 +45,48 @@ const members = [
 export default function PayrollPage() {
   const [selected, setSelected] = useState(0)
   const [stubStatus, setStubStatus] = useState<"idle" | "generating" | "success" | "error">("idle")
+  const [selectedProject, setSelectedProject] = useState(projects[0].name)
+  const [isChangeProjectOpen, setIsChangeProjectOpen] = useState(false)
   const member = members[selected]
 
   const generateStub = () => {
     setStubStatus("generating")
     setTimeout(() => setStubStatus(Math.random() > 0.3 ? "success" : "error"), 1500)
+  }
+
+  const handleChangeProject = async (projectName: string) => {
+    try {
+      const response = await fetch("/api/payroll", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+        },
+        body: JSON.stringify({
+          project_id: projects.find((p) => p.name === projectName)?.id,
+          period_start: "2023-10-01",
+          period_end: "2023-10-15",
+          changes: [
+            {
+              user_id: member.id,
+              project_id: projects.find((p) => p.name === projectName)?.id,
+              total_amount: member.netPay,
+            },
+          ],
+        }),
+      })
+
+      if (response.ok) {
+        setSelectedProject(projectName)
+        setIsChangeProjectOpen(false)
+        alert("Project changed successfully!")
+      } else {
+        alert("Failed to change project")
+      }
+    } catch (error) {
+      console.error("Error changing project:", error)
+      alert("Error changing project")
+    }
   }
 
   return (
@@ -45,8 +97,12 @@ export default function PayrollPage() {
           <div className="lg:col-span-2 bg-white p-5 md:p-6 border border-slate-200 rounded-lg">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Current Project</span>
             <div className="flex items-center justify-between gap-3 mt-2">
-              <h2 className="text-xl md:text-2xl font-bold tracking-tight">Riverside Commercial Complex</h2>
-              <Button variant="outline" size="sm">
+              <h2 className="text-xl md:text-2xl font-bold tracking-tight">{selectedProject}</h2>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsChangeProjectOpen(true)}
+              >
                 Change <ChevronDown className="h-3 w-3" />
               </Button>
             </div>
@@ -210,6 +266,44 @@ export default function PayrollPage() {
           </div>
         </div>
       </div>
+
+      {/* Change Project Modal */}
+      <Dialog open={isChangeProjectOpen} onOpenChange={setIsChangeProjectOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Change Project</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-slate-600">
+              Select a different project to view payroll data
+            </p>
+            <div className="space-y-2">
+              {projects.map((project) => (
+                <button
+                  key={project.id}
+                  onClick={() => handleChangeProject(project.name)}
+                  className={cn(
+                    "w-full text-left p-4 rounded-lg border-2 transition-colors",
+                    selectedProject === project.name
+                      ? "border-slate-900 bg-slate-50"
+                      : "border-slate-200 hover:border-slate-400"
+                  )}
+                >
+                  <p className="font-semibold text-slate-900">{project.name}</p>
+                  <p className="text-xs text-slate-500 mt-1">Status: {project.status}</p>
+                </button>
+              ))}
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => setIsChangeProjectOpen(false)}
+              className="w-full"
+            >
+              Cancel
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   )
 }

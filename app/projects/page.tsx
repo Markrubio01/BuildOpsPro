@@ -196,6 +196,89 @@ export default function ProjectsPage() {
     setSelectedClockOut(next);
   };
 
+  const handleClockIn = async () => {
+    if (selectedClockIn.size === 0) {
+      alert("Select at least one employee to clock in");
+      return;
+    }
+
+    try {
+      // Get current location
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          async (position) => {
+            for (const id of selectedClockIn) {
+              await fetch("/api/clock-in/checkin", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+                },
+                body: JSON.stringify({
+                  location_lat: position.coords.latitude,
+                  location_lng: position.coords.longitude,
+                  biometric_verified: false,
+                  notes: "Clock in via web interface",
+                }),
+              });
+            }
+            setClockInModalOpen(false);
+            setSelectedClockIn(new Set());
+            alert("Successfully clocked in!");
+          },
+          (error) => {
+            console.error("Geolocation error:", error);
+            alert("Unable to get location. Please enable location services.");
+          }
+        );
+      }
+    } catch (error) {
+      console.error("Error clocking in:", error);
+      alert("Error clocking in employees");
+    }
+  };
+
+  const handleClockOut = async () => {
+    if (selectedClockOut.size === 0) {
+      alert("Select at least one employee to clock out");
+      return;
+    }
+
+    try {
+      // Get current location
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          async (position) => {
+            for (const id of selectedClockOut) {
+              await fetch("/api/clock-in/checkout", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+                },
+                body: JSON.stringify({
+                  location_lat: position.coords.latitude,
+                  location_lng: position.coords.longitude,
+                  notes: "Clock out via web interface",
+                }),
+              });
+            }
+            setClockOutModalOpen(false);
+            setSelectedClockOut(new Set());
+            alert("Successfully clocked out!");
+          },
+          (error) => {
+            console.error("Geolocation error:", error);
+            alert("Unable to get location. Please enable location services.");
+          }
+        );
+      }
+    } catch (error) {
+      console.error("Error clocking out:", error);
+      alert("Error clocking out employees");
+    }
+  };
+
   const getShiftStatusColor = (status: string) => {
     switch (status) {
       case "FULL SHIFT":
@@ -208,6 +291,25 @@ export default function ProjectsPage() {
         return "text-slate-500";
     }
   };
+
+  // Filter crew based on search
+  const filteredClocked = clockedInCrew.filter(
+    (member) =>
+      member.name.toLowerCase().includes(search.toLowerCase()) ||
+      member.role.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const filteredClockOut = clockedOutCrew.filter(
+    (member) =>
+      member.name.toLowerCase().includes(search.toLowerCase()) ||
+      member.role.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const filteredAbsent = absentCrew.filter(
+    (member) =>
+      member.name.toLowerCase().includes(search.toLowerCase()) ||
+      member.role.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <AppShell title="Projects">
@@ -378,11 +480,11 @@ export default function ProjectsPage() {
                 </h3>
               </div>
               <span className="bg-emerald-100 text-emerald-700 font-bold px-2.5 py-0.5 rounded-full text-xs">
-                {clockedInCrew.length + 35} Members
+                {filteredClocked.length + 35} Members
               </span>
             </div>
             <div className="flex flex-col gap-3">
-              {clockedInCrew.map((member) => (
+              {filteredClocked.map((member) => (
                 <CrewCard key={member.id} member={member} type="in" />
               ))}
             </div>
@@ -398,11 +500,11 @@ export default function ProjectsPage() {
                 </h3>
               </div>
               <span className="bg-blue-100 text-blue-700 font-bold px-2.5 py-0.5 rounded-full text-xs">
-                {clockedOutCrew.length + 2} Members
+                {filteredClockOut.length + 2} Members
               </span>
             </div>
             <div className="flex flex-col gap-3">
-              {clockedOutCrew.map((member) => (
+              {filteredClockOut.map((member) => (
                 <CrewCard key={member.id} member={member} type="out" />
               ))}
             </div>
@@ -416,11 +518,11 @@ export default function ProjectsPage() {
                 <h3 className="text-lg font-semibold text-slate-900">Absent</h3>
               </div>
               <span className="bg-red-100 text-red-700 font-bold px-2.5 py-0.5 rounded-full text-xs">
-                {absentCrew.length} Members
+                {filteredAbsent.length} Members
               </span>
             </div>
             <div className="flex flex-col gap-3">
-              {absentCrew.map((member) => (
+              {filteredAbsent.map((member) => (
                 <AbsentCard key={member.id} member={member} />
               ))}
             </div>
@@ -544,7 +646,7 @@ export default function ProjectsPage() {
             <div className="p-4 border-t border-slate-200 flex gap-3">
               <Button
                 className="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-bold h-12"
-                onClick={() => setClockInModalOpen(false)}
+                onClick={handleClockIn}
               >
                 <LogIn className="h-5 w-5 mr-2" />
                 CLOCK IN SELECTED
@@ -641,7 +743,7 @@ export default function ProjectsPage() {
             <div className="p-4 border-t border-slate-200 flex gap-3">
               <Button
                 className="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-bold h-12"
-                onClick={() => setClockOutModalOpen(false)}
+                onClick={handleClockOut}
               >
                 <LogOut className="h-5 w-5 mr-2" />
                 CLOCK OUT SELECTED
