@@ -22,50 +22,13 @@ import { cn } from "@/lib/utils";
 
 type DayStatus = "present" | "absent" | "ot" | "weekend" | "holiday" | null;
 
-const sampleDaysData: Record<
-  number,
-  { status: DayStatus; hours: number; project: string }
-> = {
-  1: { status: "weekend", hours: 0, project: "" },
-  2: { status: "present", hours: 8.0, project: "Core Construction" },
-  3: { status: "present", hours: 8.0, project: "Core Construction" },
-  4: { status: "ot", hours: 10.5, project: "Infrastructure Phase 2" },
-  5: { status: "present", hours: 8.0, project: "Structural Slab" },
-  6: { status: "present", hours: 8.0, project: "Structural Slab" },
-  7: { status: "weekend", hours: 0, project: "" },
-  8: { status: "weekend", hours: 0, project: "" },
-  9: { status: "absent", hours: 0, project: "Medical Leave" },
-  10: { status: "present", hours: 8.0, project: "Site Cleanup" },
-  11: { status: "present", hours: 8.0, project: "Main Lobby Floor" },
-  12: { status: "present", hours: 8.0, project: "Main Lobby Floor" },
-  13: { status: "present", hours: 8.0, project: "Electrical Finish" },
-  14: { status: "weekend", hours: 0, project: "" },
-  15: { status: "weekend", hours: 0, project: "" },
-  16: { status: "present", hours: 8.0, project: "Exterior Glass" },
-  17: { status: "ot", hours: 9.5, project: "Exterior Glass" },
-  18: { status: "present", hours: 8.0, project: "HVAC Install" },
-  19: { status: "present", hours: 8.0, project: "HVAC Install" },
-  20: { status: "holiday", hours: 0, project: "Company Holiday" },
-  21: { status: "weekend", hours: 0, project: "" },
-  22: { status: "weekend", hours: 0, project: "" },
-  23: { status: "present", hours: 8.0, project: "Rooftop Sealant" },
-  24: { status: "ot", hours: 11.0, project: "Rooftop Sealant" },
-  25: { status: "present", hours: 8.0, project: "Inspection Prep" },
-  26: { status: "present", hours: 8.0, project: "Inspection Prep" },
-  27: { status: "present", hours: 8.0, project: "Compliance Review" },
-  28: { status: "weekend", hours: 0, project: "" },
-  29: { status: "weekend", hours: 0, project: "" },
-  30: { status: "present", hours: 8.0, project: "Structural Seals" },
-  31: { status: "present", hours: 8.0, project: "Structural Seals" },
-};
-
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 export default function TimesheetPage() {
   const [selectedDay, setSelectedDay] = useState<number | null>(5);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedEmployee, setSelectedEmployee] = useState<string | null>("sarah");
-  const [daysData, setDaysData] = useState(sampleDaysData);
+  const [daysData, setDaysData] = useState<Record<number, { status: DayStatus; hours: number; project: string }>>({});
   const [isLoading, setIsLoading] = useState(true);
 
   // Get days in month and start offset
@@ -102,12 +65,24 @@ export default function TimesheetPage() {
           .eq("status", "approved");
 
         // Build day data from entries
-        const newDaysData = { ...sampleDaysData };
-        if (entries) {
-          entries.forEach((entry) => {
+        const newDaysData: Record<number, { status: DayStatus; hours: number; project: string }> = {};
+        
+        // Initialize all days with weekend status first
+        for (let i = 1; i <= daysInMonth; i++) {
+          const date = new Date(year, month, i);
+          const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+          newDaysData[i] = {
+            status: isWeekend ? "weekend" : null,
+            hours: 0,
+            project: "",
+          };
+        }
+
+        // Update with entries from database
+        if (entries && entries.length > 0) {
+          entries.forEach((entry: any) => {
             const date = new Date(entry.date);
             const dayOfMonth = date.getDate();
-            const isWeekend = date.getDay() === 0 || date.getDay() === 6;
 
             newDaysData[dayOfMonth] = {
               status: entry.hours_worked > 8 ? "ot" : "present",
@@ -116,6 +91,7 @@ export default function TimesheetPage() {
             };
           });
         }
+        
         setDaysData(newDaysData);
       } catch (error) {
         console.error("[v0] Error fetching timesheet data:", error);
@@ -125,7 +101,7 @@ export default function TimesheetPage() {
     };
 
     fetchTimesheetData();
-  }, [year, month, selectedEmployee]);
+  }, [year, month, selectedEmployee, daysInMonth]);
 
   const stats = useMemo(() => {
     const values = Object.values(daysData);
@@ -288,7 +264,7 @@ export default function TimesheetPage() {
 
             {Array.from({ length: daysInMonth }).map((_, i) => {
               const day = i + 1;
-              const data = daysData[day];
+              const data = daysData[day] || { status: null, hours: 0, project: "" };
               const isSelected = selectedDay === day;
               return (
                 <button

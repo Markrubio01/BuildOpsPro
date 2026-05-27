@@ -6,7 +6,7 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 // Lazy initialization - only throw if actually used
 let supabaseInstance: any = null
 
-export function getSupabase() {
+export function createSupabaseClient() {
   if (!supabaseUrl || !supabaseAnonKey) {
     throw new Error('Missing Supabase environment variables')
   }
@@ -16,6 +16,10 @@ export function getSupabase() {
   }
 
   return supabaseInstance
+}
+
+export function getSupabase() {
+  return createSupabaseClient()
 }
 
 // Export as getter for backwards compatibility

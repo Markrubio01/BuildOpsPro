@@ -1,13 +1,46 @@
+"use client"
+
+import { useState } from "react"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { ArrowRight, Fingerprint, KeyRound, Mail, HelpCircle, ShieldCheck, Building2 } from "lucide-react"
+import { ArrowRight, Fingerprint, KeyRound, Mail, HelpCircle, ShieldCheck, Building2, Loader2 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Button } from "@/components/ui/button"
+import { loginUser } from "@/lib/auth"
 
 export default function LoginPage() {
+  const router = useRouter()
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [rememberMe, setRememberMe] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError("")
+    setIsLoading(true)
+
+    try {
+      const result = await loginUser(email, password)
+
+      if (result.error) {
+        setError(result.error)
+      } else {
+        console.log("[v0] Login successful, redirecting to dashboard")
+        router.push("/dashboard")
+      }
+    } catch (err) {
+      console.error("[v0] Login error:", err)
+      setError("Login failed. Please try again.")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   return (
     <div className="relative min-h-screen flex items-center justify-center p-4 md:p-8 overflow-hidden bg-slate-950">
-      {/* Background pattern */}
       <div className="absolute inset-0 z-0">
         <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950" />
         <div className="absolute inset-0 blueprint-grid opacity-40" />
@@ -71,7 +104,13 @@ export default function LoginPage() {
               </p>
             </div>
 
-            <form className="space-y-5">
+            <form onSubmit={handleLogin} className="space-y-5">
+              {error && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+                  <p className="text-sm text-red-700 font-medium">{error}</p>
+                </div>
+              )}
+
               <div className="space-y-2">
                 <label htmlFor="email" className="text-[11px] font-bold uppercase tracking-widest text-slate-900">
                   Work Email
@@ -83,6 +122,9 @@ export default function LoginPage() {
                     type="email"
                     placeholder="p.manager@industrialcorp.com"
                     className="h-12 pl-10 bg-slate-50 border-slate-200"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
                   />
                 </div>
               </div>
@@ -103,23 +145,42 @@ export default function LoginPage() {
                     type="password"
                     placeholder="••••••••••••"
                     className="h-12 pl-10 bg-slate-50 border-slate-200"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
                   />
                 </div>
               </div>
 
               <div className="flex items-center gap-2 pt-1">
-                <Checkbox id="remember" />
+                <Checkbox
+                  id="remember"
+                  checked={rememberMe}
+                  onCheckedChange={(checked) => setRememberMe(checked as boolean)}
+                />
                 <label htmlFor="remember" className="text-sm font-medium text-slate-700 cursor-pointer">
                   Remember this terminal
                 </label>
               </div>
 
               <div className="space-y-3 pt-2">
-                <Button asChild size="lg" className="w-full h-12 text-base">
-                  <Link href="/dashboard">
-                    Sign In to Portal
-                    <ArrowRight className="h-4 w-4" />
-                  </Link>
+                <Button
+                  type="submit"
+                  size="lg"
+                  className="w-full h-12 text-base"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Signing In...
+                    </>
+                  ) : (
+                    <>
+                      Sign In to Portal
+                      <ArrowRight className="h-4 w-4" />
+                    </>
+                  )}
                 </Button>
 
                 <div className="relative flex items-center py-2">

@@ -30,48 +30,34 @@ interface PayrollMember {
   deductions: number
 }
 
-const sampleProjects = [
-  { id: "1", name: "Riverside Commercial Complex", status: "Processing" },
-  { id: "2", name: "Downtown Office Complex", status: "Processing" },
-  { id: "3", name: "Skyline Towers - Phase 2", status: "Completed" },
-  { id: "4", name: "Waterfront Development", status: "Active" },
-]
-
-const sampleMembers: PayrollMember[] = [
-  {
-    id: 1,
-    name: "Elena Rodriguez",
-    initials: "ER",
-    role: "Structural Lead • Level 4",
-    netPay: 4850.42,
-    baseHours: 80,
-    otHours: 12,
-    absentDays: 0,
-    rate: 48,
-    basePay: 3840,
-    otPay: 864,
-    deductions: 241.58,
-  },
-  { id: 2, name: "James Wilson", initials: "JW", role: "Heavy Equipment Op.", netPay: 4120, baseHours: 80, otHours: 8, absentDays: 0, rate: 42, basePay: 3360, otPay: 504, deductions: 256 },
-  { id: 3, name: "Sarah Chen", initials: "SC", role: "Electrical Specialist", netPay: 3950.15, baseHours: 80, otHours: 6, absentDays: 0, rate: 40, basePay: 3200, otPay: 360, deductions: 390.85 },
-  { id: 4, name: "David Miller", initials: "DM", role: "Finishing Carpentry", netPay: 3680, baseHours: 80, otHours: 5, absentDays: 1, rate: 38, basePay: 3040, otPay: 285, deductions: 355 },
-  { id: 5, name: "Aisha Patel", initials: "AP", role: "Safety Inspector", netPay: 3420, baseHours: 80, otHours: 0, absentDays: 0, rate: 36, basePay: 2880, otPay: 0, deductions: 220 },
-]
-
 export default function PayrollPage() {
   const [selected, setSelected] = useState(0)
   const [stubStatus, setStubStatus] = useState<"idle" | "generating" | "success" | "error">("idle")
-  const [selectedProject, setSelectedProject] = useState(sampleProjects[0].name)
+  const [selectedProject, setSelectedProject] = useState("Riverside Commercial Complex")
   const [isChangeProjectOpen, setIsChangeProjectOpen] = useState(false)
-  const [members, setMembers] = useState<PayrollMember[]>(sampleMembers)
+  const [members, setMembers] = useState<PayrollMember[]>([])
+  const [projects, setProjects] = useState<Array<{ id: string; name: string; status: string }>>([])
   const [isLoading, setIsLoading] = useState(true)
-  const member = members[selected]
+  const member = members?.[selected] || null
 
   // Fetch payroll data on mount
   useEffect(() => {
     const fetchPayrollData = async () => {
       try {
         const supabase = getSupabase()
+
+        // Get projects
+        const { data: projectsData } = await supabase
+          .from("projects")
+          .select("id, name, status")
+          .limit(4)
+
+        if (projectsData) {
+          setProjects(projectsData)
+          if (projectsData.length > 0) {
+            setSelectedProject(projectsData[0].name)
+          }
+        }
 
         // Get current period payroll records
         const periodStart = new Date()
@@ -85,7 +71,7 @@ export default function PayrollPage() {
           .lte("period_end", periodEnd.toISOString().split("T")[0])
 
         if (payrollData) {
-          const transformedMembers = payrollData.map((record, idx) => ({
+          const transformedMembers = payrollData.map((record: any) => ({
             id: record.user_id,
             name: record.users?.full_name || "Unknown",
             initials: (record.users?.full_name || "??").split(" ").map((n: string) => n[0]).join(""),
@@ -99,7 +85,7 @@ export default function PayrollPage() {
             otPay: 0,
             deductions: parseFloat(record.total_deductions) || 0,
           }));
-          setMembers([...transformedMembers, ...sampleMembers.slice(transformedMembers.length)]);
+          setMembers(transformedMembers);
         }
       } catch (error) {
         console.error("[v0] Error fetching payroll data:", error);
@@ -117,7 +103,10 @@ export default function PayrollPage() {
   }
 
   const handleChangeProject = async (projectName: string) => {
+    if (!member) return
+    
     try {
+      const projectId = projects.find((p) => p.name === projectName)?.id
       const response = await fetch("/api/payroll", {
         method: "POST",
         headers: {
@@ -125,13 +114,13 @@ export default function PayrollPage() {
           Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
         },
         body: JSON.stringify({
-          project_id: sampleProjects.find((p) => p.name === projectName)?.id,
+          project_id: projectId,
           period_start: new Date().toISOString().split("T")[0],
           period_end: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().split("T")[0],
           changes: [
             {
               user_id: member.id,
-              project_id: sampleProjects.find((p) => p.name === projectName)?.id,
+              project_id: projectId,
               total_amount: member.netPay,
             },
           ],
@@ -254,11 +243,12 @@ export default function PayrollPage() {
 
           {/* Pay detail */}
           <div className="lg:col-span-5 lg:sticky lg:top-24">
+            {member ? (
             <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
               <div className="bg-slate-50 p-5 md:p-6 border-b border-slate-200">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-lg md:text-xl font-bold tracking-tight">Pay Detail</h3>
-                  <span className="text-[10px] font-bold text-slate-400 tracking-tight">ID: #BOP-{88219 + member.id}</span>
+                  <span className="text-[10px] font-bold text-slate-400 tracking-tight">ID: #BOP-{88219 + Number(member.id)}</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="w-14 h-14 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-base">
@@ -325,6 +315,11 @@ export default function PayrollPage() {
                 </p>
               </div>
             </div>
+            ) : (
+              <div className="bg-white border border-slate-200 rounded-lg p-6 text-center">
+                <p className="text-slate-500">Loading payroll data...</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -340,7 +335,7 @@ export default function PayrollPage() {
               Select a different project to view payroll data
             </p>
             <div className="space-y-2">
-              {sampleProjects.map((project) => (
+              {projects.map((project) => (
                 <button
                   key={project.id}
                   onClick={() => handleChangeProject(project.name)}

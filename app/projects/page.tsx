@@ -42,110 +42,6 @@ interface CrewMember {
   avatar?: string | null;
 }
 
-// Sample crew data matching the design
-const sampleClockIn: CrewMember[] = [
-  {
-    id: "1",
-    name: "David Chen",
-    role: "Lead Structural Engineer",
-    time: "07:15 AM",
-    location: "Gate 4 Entry",
-    avatar:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuAVpvL6ptLR5DMHKyrS2pGJz7gzK_07Gquv8WvLZcromnG1rq3pwLM323DCMWwhHcv-VV9T-CsfJ1oYa2xDBdYHPpA7srhlKlvT1TOOm1gq2zu5NHS6yFReg25pDKDu6TT6sa2CCpEX4IWqFSghshBkJvygiDyGBjJi6wNYaTLzjA-OuwLdgagnzkTMOLzr2sDQELLEaJZoM1uP9sFf1CCbytiLEyBRChHJDkj1lpOXdsMk3TTPE_ezJ_swA2G7IiKf6O7R4vnHNkkE",
-  },
-];
-
-const sampleClockOut: CrewMember[] = [
-  {
-    id: "4",
-    name: "Elena Rodriguez",
-    role: "Site Architect",
-    time: "04:30 PM",
-    status: "Shift Ended",
-    avatar:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuDb_sBJfJD7aidNJ2e4z3SBIvGGze-BmseJ9SyUjNFGJsxSnq5t_wSGtE_gjegJsp1Zja7FSTzPnn3vCupd0xWIuZnGWF3igAxNPNmLESpHQgSp1uYJeEJNBu3zqNBy140aeUDcT3yUzEKANoBef6up4P1XNDzm7VLaGXMY-2SqGflmZ3ou0vPS8EIjDQIaR253qYHLOsWaZDPLWq8A2Jy7dSOTKiVuI_KgLSDDFRUVYZb48eobWzAzqCpa3xy_F-KcjeUYhOOm9TMJ",
-  },
-];
-
-const sampleAbsent: CrewMember[] = [
-  {
-    id: "6",
-    name: "Robert Vance",
-    role: "Lead Electrician",
-    status: "No Show",
-    scheduled: "08:00 AM",
-    avatar:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuCmQ4UxxEgbnGWNpA2P6Wr7QMrdQcmuGCGJS_tUFCiPD2rbzaTGdO4e30pb43NJPVgLZXkgDUTHqyPLULwvxe24JZeEEKt-vSlAkwtXMT_gDfRejgtDBYCsWfBEN8JbZGkOxAMSvpBtzcqxyxIRgx2EWhigGQB-9NKSP5wdL0gH5O2vUa9nwBc257EBYFs2vvuVYS_qtBdo8ZnPh6BX2zzY8CmW7Miqi0FARXGrkyPTe6WgI2HtWfi2UGTdtKgSg-RH3bUBXaehJ4vc",
-  },
-];
-
-// Personnel available to clock in/out
-const availablePersonnel = [
-  {
-    id: "p1",
-    name: "Elena Vance",
-    role: "HVAC Specialist",
-    time: "04:30 PM",
-    shiftStatus: "FULL SHIFT",
-    avatar:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuDb_sBJfJD7aidNJ2e4z3SBIvGGze-BmseJ9SyUjNFGJsxSnq5t_wSGtE_gjegJsp1Zja7FSTzPnn3vCupd0xWIuZnGWF3igAxNPNmLESpHQgSp1uYJeEJNBu3zqNBy140aeUDcT3yUzEKANoBef6up4P1XNDzm7VLaGXMY-2SqGflmZ3ou0vPS8EIjDQIaR253qYHLOsWaZDPLWq8A2Jy7dSOTKiVuI_KgLSDDFRUVYZb48eobWzAzqCpa3xy_F-KcjeUYhOOm9TMJ",
-  },
-  {
-    id: "p2",
-    name: "David Aris",
-    role: "Steel Fixer",
-    time: "04:30 PM",
-    shiftStatus: "NEAR END",
-    avatar:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuAVpvL6ptLR5DMHKyrS2pGJz7gzK_07Gquv8WvLZcromnG1rq3pwLM323DCMWwhHcv-VV9T-CsfJ1oYa2xDBdYHPpA7srhlKlvT1TOOm1gq2zu5NHS6yFReg25pDKDu6TT6sa2CCpEX4IWqFSghshBkJvygiDyGBjJi6wNYaTLzjA-OuwLdgagnzkTMOLzr2sDQELLEaJZoM1uP9sFf1CCbytiLEyBRChHJDkj1lpOXdsMk3TTPE_ezJ_swA2G7IiKf6O7R4vnHNkkE",
-  },
-  {
-    id: "p3",
-    name: "Jordan Lee",
-    role: "Carpenter",
-    time: "04:30 PM",
-    shiftStatus: "FULL SHIFT",
-    avatar:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuDLUz6nSnFGc7-HJQUSYLOyfC4vX0mrJmHDN4gebC2hLcKCNk_Lm5SrjaivSsta7j6ubgP_mfe1vL0y-pd3LPNyODV-hbe8AP-XEwRVAJXj67V616SF-eCLJT7A_ay-URJYLlzXYqAll2VDQA5__BHYgyaC5BistmahkYNxOaTAnBjwBUqnMTJhsbdgLNIhB8hLywviU4ov-wqKwlANMfgdZn0-GuQYjbJuUvGh-Tr8fL0tVJaUf3LlC1KcYy3R9FY2K7gf9TYAmQQU",
-  },
-  {
-    id: "p4",
-    name: "Samuel Park",
-    role: "Safety Officer",
-    time: "04:30 PM",
-    shiftStatus: "OVERTIME",
-    avatar:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuAx4wa7b-5D0c3w48q0oYJwOxT1eX4qWebusJLtMHo-jdKhiWJexQspdMwOEpLEBhn9gwb1Tu7pa7De7SHuzkjxQfiOxKCHkZwow6SaL_slGQvLks3TIOlWxJT6N6Dyy6PXqIqfXzY9fAX3gvKAz2h0fInJqMgSS3wMmQr47T1Nl0B-suhJUG05UOsucgjWjetdWW2DLi9CuW3vQoU49ZsHHC4S7v1VT7lZ6TGjtGLliV6FEukKhEC-aoGt-oRQ8MngN3kHZKazsTaM",
-  },
-];
-
-const unclockdPersonnel = [
-  {
-    id: "u1",
-    name: "Riley Smith",
-    role: "Carpenter",
-    timeIn: "07:30 AM",
-    avatar:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuDLUz6nSnFGc7-HJQUSYLOyfC4vX0mrJmHDN4gebC2hLcKCNk_Lm5SrjaivSsta7j6ubgP_mfe1vL0y-pd3LPNyODV-hbe8AP-XEwRVAJXj67V616SF-eCLJT7A_ay-URJYLlzXYqAll2VDQA5__BHYgyaC5BistmahkYNxOaTAnBjwBUqnMTJhsbdgLNIhB8hLywviU4ov-wqKwlANMfgdZn0-GuQYjbJuUvGh-Tr8fL0tVJaUf3LlC1KcYy3R9FY2K7gf9TYAmQQU",
-  },
-  {
-    id: "u2",
-    name: "Elena Rodriguez",
-    role: "Structural Welder",
-    timeIn: "07:30 AM",
-    avatar:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuDb_sBJfJD7aidNJ2e4z3SBIvGGze-BmseJ9SyUjNFGJsxSnq5t_wSGtE_gjegJsp1Zja7FSTzPnn3vCupd0xWIuZnGWF3igAxNPNmLESpHQgSp1uYJeEJNBu3zqNBy140aeUDcT3yUzEKANoBef6up4P1XNDzm7VLaGXMY-2SqGflmZ3ou0vPS8EIjDQIaR253qYHLOsWaZDPLWq8A2Jy7dSOTKiVuI_KgLSDDFRUVYZb48eobWzAzqCpa3xy_F-KcjeUYhOOm9TMJ",
-  },
-  {
-    id: "u3",
-    name: "James Miller",
-    role: "General Laborer",
-    timeIn: "07:30 AM",
-    avatar:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuAVpvL6ptLR5DMHKyrS2pGJz7gzK_07Gquv8WvLZcromnG1rq3pwLM323DCMWwhHcv-VV9T-CsfJ1oYa2xDBdYHPpA7srhlKlvT1TOOm1gq2zu5NHS6yFReg25pDKDu6TT6sa2CCpEX4IWqFSghshBkJvygiDyGBjJi6wNYaTLzjA-OuwLdgagnzkTMOLzr2sDQELLEaJZoM1uP9sFf1CCbytiLEyBRChHJDkj1lpOXdsMk3TTPE_ezJ_swA2G7IiKf6O7R4vnHNkkE",
-  },
-];
-
 export default function ProjectsPage() {
   const [search, setSearch] = useState("");
   const [clockInModalOpen, setClockInModalOpen] = useState(false);
@@ -155,9 +51,9 @@ export default function ProjectsPage() {
   const [modalSearch, setModalSearch] = useState("");
   const [isClockInModalOpen, setIsClockInModalOpen] = useState(false);
   const [isClockOutModalOpen, setIsClockOutModalOpen] = useState(false);
-  const [clockedInCrew, setClockdInCrew] = useState<CrewMember[]>(sampleClockIn);
-  const [clockedOutCrew, setClockdOutCrew] = useState<CrewMember[]>(sampleClockOut);
-  const [absentCrew, setAbsentCrew] = useState<CrewMember[]>(sampleAbsent);
+  const [clockedInCrew, setClockdInCrew] = useState<CrewMember[]>([]);
+  const [clockedOutCrew, setClockdOutCrew] = useState<CrewMember[]>([]);
+  const [absentCrew, setAbsentCrew] = useState<CrewMember[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Load crew data on mount
@@ -183,7 +79,7 @@ export default function ProjectsPage() {
 
         // Transform data to match UI structure
         if (clockInData) {
-          const clockInCrew = clockInData.map((record) => ({
+          const clockInCrew = clockInData.map((record: any) => ({
             id: record.user_id,
             name: record.users?.full_name || "Unknown",
             role: record.users?.title || "Staff",
@@ -193,11 +89,11 @@ export default function ProjectsPage() {
             }),
             location: "Site Location",
           }));
-          setClockdInCrew([...sampleClockIn, ...clockInCrew].slice(0, 5));
+          setClockdInCrew(clockInCrew);
         }
 
         if (clockOutData) {
-          const clockOutCrew = clockOutData.map((record) => ({
+          const clockOutCrew = clockOutData.map((record: any) => ({
             id: record.user_id,
             name: record.users?.full_name || "Unknown",
             role: record.users?.title || "Staff",
@@ -207,7 +103,7 @@ export default function ProjectsPage() {
             }),
             status: "Shift Ended",
           }));
-          setClockdOutCrew([...sampleClockOut, ...clockOutCrew].slice(0, 5));
+          setClockdOutCrew(clockOutCrew);
         }
       } catch (error) {
         console.error("[v0] Error fetching clock-in/out data:", error);
